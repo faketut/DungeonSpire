@@ -1,7 +1,7 @@
 
-# Voidspire: modular dungeon crawler game + 3 DLC
+# DungeonSpire: modular dungeon crawler game + 3 DLC
 
-**Voidspire** is a terminal-based, single-player dungeon crawler implemented in C++. The game features an endless tower structure with procedurally generated floors, turn-based combat, and support for modular gameplay extensions such as a dynamic weather system and a quest engine. It was developed to demonstrate object-oriented design principles, memory-safe architecture, and feature extensibility.
+**DungeonSpire** is a terminal-based, single-player dungeon crawler implemented in C++. The game features an endless tower structure with procedurally generated floors, turn-based combat, and support for modular gameplay extensions such as a dynamic weather system and a quest engine. It was developed to demonstrate object-oriented design principles, memory-safe architecture, and feature extensibility.
 
 ![Gif](./Animation.gif)
 ---
@@ -27,8 +27,8 @@
 
 ### Compilation
 ```bash
-git clone https://github.com/yourusername/Voidspire.git
-cd Voidspire
+git clone https://github.com/yourusername/DungeonSpire.git
+cd DungeonSpire
 make
 ```
 
