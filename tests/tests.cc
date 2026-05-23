@@ -11,6 +11,7 @@
 #include "../src/Board.h"
 #include "../src/EventBus.h"
 #include "../src/EnemyStats.h"
+#include "../src/SaveGame.h"
 #include "../src/Enemy.h"
 
 TEST_CASE("Position::distanceTo is Manhattan distance") {
@@ -504,4 +505,75 @@ TEST_CASE("Enemy constructor reads stats from the registry") {
     CHECK(m.getHp()  == 30);
     CHECK(m.getAtk() == 70);
     CHECK(m.getDef() == 5);
+}
+
+// ---------------------------------------------------------------------------
+// Phase 2.7 — SaveGame JSON round-trip
+// ---------------------------------------------------------------------------
+
+TEST_CASE("SaveGame round-trips a populated SaveData through JSON") {
+    cc3k::SaveData d;
+    d.seed = 0xDEADBEEFu;
+    d.filename = "./files/potions.txt";
+    d.weatherEnabled = true;
+    d.questEnabled = true;
+    d.floorId = 3;
+    d.player.race = 2;
+    d.player.maxHp = 150;
+    d.player.hp = 42;
+    d.player.atk = 33;
+    d.player.def = 17;
+    d.player.gold = 999;
+    d.player.score = 12345;
+    d.player.goldModifier = 1.5;
+    d.player.hasBarrierSuit = true;
+    d.player.visibility = 8;
+    d.player.movementSpeed = 2;
+
+    auto s = cc3k::toJson(d);
+    auto r = cc3k::fromJson(s);
+    REQUIRE(r.has_value());
+    CHECK(r->version == d.version);
+    CHECK(r->seed == d.seed);
+    CHECK(r->filename == d.filename);
+    CHECK(r->weatherEnabled == d.weatherEnabled);
+    CHECK(r->questEnabled == d.questEnabled);
+    CHECK(r->floorId == d.floorId);
+    CHECK(r->player.race == d.player.race);
+    CHECK(r->player.maxHp == d.player.maxHp);
+    CHECK(r->player.hp == d.player.hp);
+    CHECK(r->player.atk == d.player.atk);
+    CHECK(r->player.def == d.player.def);
+    CHECK(r->player.gold == d.player.gold);
+    CHECK(r->player.score == d.player.score);
+    CHECK(r->player.goldModifier == doctest::Approx(d.player.goldModifier));
+    CHECK(r->player.hasBarrierSuit == d.player.hasBarrierSuit);
+    CHECK(r->player.visibility == d.player.visibility);
+    CHECK(r->player.movementSpeed == d.player.movementSpeed);
+}
+
+TEST_CASE("SaveGame::fromJson rejects malformed or wrong-version input") {
+    CHECK_FALSE(cc3k::fromJson("not json").has_value());
+    CHECK_FALSE(cc3k::fromJson("{}").has_value());
+    CHECK_FALSE(cc3k::fromJson(R"({"version":999})").has_value());
+}
+
+TEST_CASE("SaveGame::load returns nullopt for a missing file") {
+    CHECK_FALSE(cc3k::load("/tmp/cc3k_nonexistent_save_xyz_12345.json").has_value());
+}
+
+TEST_CASE("SaveGame::save then load round-trips on disk") {
+    const std::string path = "/tmp/cc3k_savegame_test.json";
+    std::remove(path.c_str());
+    cc3k::SaveData d;
+    d.seed = 7;
+    d.floorId = 2;
+    d.player.gold = 250;
+    REQUIRE(cc3k::save(path, d));
+    auto r = cc3k::load(path);
+    REQUIRE(r.has_value());
+    CHECK(r->seed == 7u);
+    CHECK(r->floorId == 2);
+    CHECK(r->player.gold == 250);
+    std::remove(path.c_str());
 }

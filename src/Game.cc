@@ -103,10 +103,44 @@ bool Game::gameOver() {
     }else
         return false;
 }
-Game::Game(int seed, std::string fn, bool wealtherEnabled, bool questEnabled) : board(nullptr), state(GameState::RESTART), filename(fn),wealtherEnabled(wealtherEnabled), questEnabled(questEnabled) {
-    PRNG::seed(static_cast<std::uint32_t>(seed));
+Game::Game(int seed, std::string fn, bool wealtherEnabled, bool questEnabled,
+           std::string savePath_, std::optional<cc3k::SaveData> pendingLoad_)
+    : board(nullptr), state(GameState::RESTART), filename(fn),
+      wealtherEnabled(wealtherEnabled), questEnabled(questEnabled),
+      seedValue(static_cast<std::uint32_t>(seed)),
+      savePath(std::move(savePath_)),
+      pendingLoad(std::move(pendingLoad_)) {
+    PRNG::seed(seedValue);
     if (questEnabled) {
         initializeQuests();
+    }
+}
+
+void Game::writeSaveIfRequested() {
+    if (savePath.empty() || !board) return;
+    auto player = std::dynamic_pointer_cast<PlayerCharacter>(board->getPc()->getEntity());
+    if (!player) return;
+    cc3k::SaveData d;
+    d.seed = seedValue;
+    d.filename = filename;
+    d.weatherEnabled = wealtherEnabled;
+    d.questEnabled = questEnabled;
+    d.floorId = board->getFloorId();
+    d.player.race = static_cast<int>(player->getRace());
+    d.player.maxHp = player->getMaxHp();
+    d.player.hp = player->getHp();
+    d.player.atk = player->getAtk();
+    d.player.def = player->getDef();
+    d.player.gold = player->getGold();
+    d.player.score = player->getScore();
+    d.player.goldModifier = player->getGoldModifier();
+    d.player.hasBarrierSuit = player->hasSuit();
+    d.player.visibility = player->getVisibility();
+    d.player.movementSpeed = player->getMovementSpeed();
+    if (cc3k::save(savePath, d)) {
+        std::cout << "[cc3k] saved to " << savePath << std::endl;
+    } else {
+        std::cerr << "[cc3k] failed to write save file: " << savePath << std::endl;
     }
 }
 
@@ -127,25 +161,44 @@ void Game::restart() {
     
     state = GameState::PLAYING;
     std::cout << "Game started." << std::endl;
-    // Player is asked to choose a race 
+    auto entity = board->getPc()->getEntity();
+    auto player = std::dynamic_pointer_cast<PlayerCharacter>(entity);
+    if (!player) {
+        std::cerr << "Error: No valid player character found!" << std::endl;
+        return;
+    }
+
+    if (pendingLoad) {
+        // Restore player snapshot and replay floor advancement so the
+        // dungeon is regenerated to the saved floor under the loaded seed.
+        const auto& s = pendingLoad->player;
+        player->applyLoadedState(static_cast<Race>(s.race),
+                                 s.maxHp, s.hp, s.atk, s.def, s.gold, s.score,
+                                 s.goldModifier, s.hasBarrierSuit,
+                                 s.visibility, s.movementSpeed);
+        board->getPc()->setEntity(player);
+        std::cout << "[cc3k] loaded save: floor=" << (pendingLoad->floorId + 1)
+                  << " race=" << toString(player->getRace())
+                  << " gold=" << player->getGold() << std::endl;
+        for (int i = 0; i < pendingLoad->floorId; ++i) {
+            if (!board->nextFloor()) break;
+        }
+        pendingLoad.reset(); // only apply once; subsequent restarts are normal
+        return;
+    }
+
+    // Player is asked to choose a race
     // Each race can be selected
     std::cout << "Choose your race h[Human]|e[Elf]|o[Orc]|d[Dwarf]: ";
     char c;
     std::cin >> c;
-    auto entity = board->getPc()->getEntity();
-    auto player = std::dynamic_pointer_cast<PlayerCharacter>(entity);
-    
-    if (!player) {
-        std::cerr << "Error: No valid player character found!" << std::endl;
-        return; // 或者采取其他适当的措施
-    }    
     while(true){
         switch(c) {
             case 'h': player->setAttributes(Race::HUMAN);break;
             case 'e': player->setAttributes(Race::ELF);break;
             case 'o': player->setAttributes(Race::ORC);break;
             case 'd': player->setAttributes(Race::DWARF);break;
-            default: 
+            default:
                 std::cout << "Only h[Human]|e[Elf]|o[Orc]|d[Dwarf]: ";
                 std::cin >> c; // Prompt for new input
                 continue; // Skip the rest and restart the loop
@@ -243,6 +296,10 @@ void Game::run() {
                 break;
         }
     }
+    // Write the save AFTER the main loop. The loop exits when state == QUIT
+    // (the case above may never be reached because the while-condition is
+    // checked before the switch on the iteration that flips state to QUIT).
+    writeSaveIfRequested();
 }
 
 void Game::initializeQuests() {

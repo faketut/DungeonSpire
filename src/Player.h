@@ -103,11 +103,29 @@ public:
         return info;
     }
     int getHp()const{return hp;}
+    int getMaxHp()const{return maxHp;}
     int getAtk()const{return atk;}
     int getDef()const{return def;}
     int getGold()const{return gold;}
     int getScore()const{return score;}
+    double getGoldModifier()const{return goldModifier;}
     int getVisibility() const{return visibility;}
+    // Restore every cross-floor mutable field from a save snapshot.
+    // Kept as a single call to keep load logic out of Game::restart.
+    void applyLoadedState(Race r, int mh, int h, int a, int d, int g, int sc,
+                          double gm, bool suit, int vis, int spd) {
+        race = r;
+        maxHp = mh;
+        hp = h;
+        atk = a;
+        def = d;
+        gold = g;
+        score = sc;
+        goldModifier = gm;
+        hasBarrierSuit = suit;
+        visibility = vis;
+        movementSpeed = spd;
+    }
     void setVisibility(int mod) { visibility = mod; }
     int getMovementSpeed()const{return movementSpeed;}
     void setMovementSpeed(int mod) { movementSpeed = mod; }
