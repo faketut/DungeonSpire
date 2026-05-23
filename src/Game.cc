@@ -155,13 +155,13 @@ void Game::restart() {
     board->setMaxFloorId(filename);
     if(filename!="./files/default.txt"){
         board->loadBoard(board->getFloorId(),filename,toTypeBoard);
-        renderer->drawInitialBoard(*board);
         board->initByFile(board->getFloorId());
     }else{
         board->loadBoard(board->getFloorId(),filename,toTypeBoard);
-        renderer->drawInitialBoard(*board);
         board->initFloor();
     }
+    // Render the populated board and proper HUD now that the player exists.
+    renderer->drawInitialBoard(*board);
     
     state = GameState::PLAYING;
     std::cout << "Game started." << std::endl;

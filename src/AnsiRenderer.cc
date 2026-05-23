@@ -11,8 +11,9 @@ AnsiRenderer::AnsiRenderer(std::ostream& out) : out_(out) {}
 
 void AnsiRenderer::drawInitialBoard(const Board& board) {
     // Full grid dump with no fog of war. Matches the original
-    // Board::displayBoard() exactly, including its hard-coded HUD line
-    // (preserved verbatim — it pre-dates the proper HUD path).
+    // Board::displayBoard() except for its legacy hardcoded HUD line — the
+    // proper HUD is now rendered by drawHud() right after this call, using
+    // real player values.
     const bool compass = board.isCompassPickedUp();
     for (const auto& row : board.getTiles()) {
         for (const auto& tile : row) {
@@ -20,9 +21,6 @@ void AnsiRenderer::drawInitialBoard(const Board& board) {
         }
         out_ << std::endl;
     }
-    out_ << "Race: Human Gold: 0"
-         << "\t\t\t\t\t\t\tFloor " << 1 << std::endl
-         << "HP: 20\nAtk: 20\nDef: 20\nAction:" << std::endl;
 }
 
 void AnsiRenderer::drawBoard(const Board& board) {
