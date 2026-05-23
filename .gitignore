@@ -15,3 +15,6 @@ design/out/
 # OS / editor cruft
 .DS_Store
 *.swp
+
+# macOS debug bundles
+*.dSYM/
