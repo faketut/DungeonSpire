@@ -1,6 +1,7 @@
 #include "Board.h"
 #include "Quest.h"
 #include "QuestManager.h"
+#include "EventBus.h"
 #include <iostream>
 #include <sstream>
 #include <cmath>
@@ -80,6 +81,9 @@ void Board::pickUp(Direction dir){
     }
     player->incrementItemCount(tileType);
     setTile(pos,Type::FLOOR);
+    cc3k::EventBus::getInstance()->publish(cc3k::events::ItemPickedUp{
+        static_cast<int>(tileType), pos.getX(), pos.getY()
+    });
 }
 bool Board::isValidMove(const Tile& t, const Position& pos) const {
     auto objType = t.getType();

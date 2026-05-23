@@ -1,6 +1,7 @@
 #include "Board.h"
 #include "Quest.h"
 #include "QuestManager.h"
+#include "EventBus.h"
 #include <iostream>
 #include <sstream>
 #include <cmath>
@@ -71,6 +72,9 @@ void Board::die(Tile& t) {
         std::cerr << "Error: Tile does not contain an Enemy entity.\n";
         return;
     }
+    cc3k::EventBus::getInstance()->publish(cc3k::events::EnemyDied{
+        static_cast<int>(enemy->getType()), pos.getX(), pos.getY()
+    });
     if (t.getType() == Type::DRAGON) {
         auto protectedItem = enemy->getProtectedItem();
         if (protectedItem) {
