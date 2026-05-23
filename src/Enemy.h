@@ -12,10 +12,12 @@
 #include "Item.h"
 #include "Position.h"
 #include "PRNG.h"
+#include "EnemyStats.h"
 
 class Enemy:public Entity{
 protected:
-    // Enemy stat constants
+    // Enemy stat constants (kept as compile-time fallback; live values come
+    // from EnemyStats which loads data/enemies.json on first use).
     static constexpr int VAMPIRE_HP  = 50;
     static constexpr int VAMPIRE_ATK = 25;
     static constexpr int VAMPIRE_DEF = 25;
@@ -45,15 +47,13 @@ protected:
 public:
     Enemy(Type t)
         :  enemyType(t) {
-        switch (t) {
-            case Type::VAMPIRE:  maxHp = hp = VAMPIRE_HP;  atk = VAMPIRE_ATK;  def = VAMPIRE_DEF;  break;
-            case Type::WEREWOLF: maxHp = hp = WEREWOLF_HP; atk = WEREWOLF_ATK; def = WEREWOLF_DEF; break;
-            case Type::TROLL:    maxHp = hp = TROLL_HP;    atk = TROLL_ATK;    def = TROLL_DEF;    break;
-            case Type::GOBLIN:   maxHp = hp = GOBLIN_HP;   atk = GOBLIN_ATK;   def = GOBLIN_DEF;   break;
-            case Type::MERCHANT: maxHp = hp = MERCHANT_HP; atk = MERCHANT_ATK; def = MERCHANT_DEF; break;
-            case Type::DRAGON:   maxHp = hp = DRAGON_HP;   atk = DRAGON_ATK;   def = DRAGON_DEF;   break;
-            case Type::PHOENIX:  maxHp = hp = PHOENIX_HP;  atk = PHOENIX_ATK;  def = PHOENIX_DEF;  break;
-            default: throw std::invalid_argument("Unknown enemy type");
+        try {
+            const auto& s = EnemyStats::getInstance()->get(t);
+            maxHp = hp = s.hp;
+            atk = s.atk;
+            def = s.def;
+        } catch (const std::out_of_range&) {
+            throw std::invalid_argument("Unknown enemy type");
         }
     }
     std::shared_ptr<Item> getProtectedItem() const{return protectedItem;}

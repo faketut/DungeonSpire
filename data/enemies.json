@@ -1,0 +1,10 @@
+{
+  "_comment": "Enemy stat table. Loaded by EnemyStats registry. Keys are the lowercase enum names from Type. HP is also used as maxHp.",
+  "vampire":  { "hp": 50,  "atk": 25, "def": 25 },
+  "werewolf": { "hp": 120, "atk": 30, "def": 5  },
+  "troll":    { "hp": 120, "atk": 25, "def": 15 },
+  "goblin":   { "hp": 70,  "atk": 5,  "def": 10 },
+  "merchant": { "hp": 30,  "atk": 70, "def": 5  },
+  "dragon":   { "hp": 150, "atk": 20, "def": 20 },
+  "phoenix":  { "hp": 50,  "atk": 35, "def": 20 }
+}

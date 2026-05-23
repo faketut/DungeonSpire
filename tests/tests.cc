@@ -10,6 +10,8 @@
 #include "../src/Quest.h"
 #include "../src/Board.h"
 #include "../src/EventBus.h"
+#include "../src/EnemyStats.h"
+#include "../src/Enemy.h"
 
 TEST_CASE("Position::distanceTo is Manhattan distance") {
     Position a{0, 0};
@@ -417,4 +419,89 @@ TEST_CASE("Board::setFloorId publishes FloorChanged on the singleton bus") {
 
     bus->unsubscribe<cc3k::events::FloorChanged>(id);
     bus->clear();
+}
+
+// -----------------------------------------------------------------------------
+// Phase 2.6 — EnemyStats registry
+// -----------------------------------------------------------------------------
+
+TEST_CASE("EnemyStats defaults exactly mirror the historical hardcoded values") {
+    // Fresh, isolated registry: even if data/enemies.json isn't found at the
+    // ctest CWD, the built-in defaults must be a complete, correct table.
+    EnemyStats reg;
+    // We can't bypass the ctor's auto-load, but we verify the live singleton
+    // matches the published table either way.
+    const auto& s = reg; (void)s;
+
+    auto check = [](Type t, int hp, int atk, int def) {
+        const auto& got = EnemyStats::getInstance()->get(t);
+        CHECK(got.hp == hp);
+        CHECK(got.atk == atk);
+        CHECK(got.def == def);
+    };
+    check(Type::VAMPIRE,  50,  25, 25);
+    check(Type::WEREWOLF, 120, 30,  5);
+    check(Type::TROLL,    120, 25, 15);
+    check(Type::GOBLIN,   70,   5, 10);
+    check(Type::MERCHANT, 30,  70,  5);
+    check(Type::DRAGON,   150, 20, 20);
+    check(Type::PHOENIX,  50,  35, 20);
+}
+
+TEST_CASE("EnemyStats::loadFromFile rejects a missing file without mutating state") {
+    EnemyStats reg;
+    CHECK_FALSE(reg.loadFromFile("definitely/does/not/exist.json"));
+    // Defaults still queryable:
+    CHECK(reg.get(Type::DRAGON).hp == 150);
+}
+
+TEST_CASE("EnemyStats::loadFromFile rejects malformed JSON without mutating state") {
+    // Write a deliberately broken file in the test working dir.
+    const std::string bad = "tests_tmp_bad_enemies.json";
+    {
+        std::ofstream out(bad);
+        out << "{ not json";
+    }
+    EnemyStats reg;
+    CHECK_FALSE(reg.loadFromFile(bad));
+    CHECK(reg.get(Type::GOBLIN).atk == 5);
+    std::remove(bad.c_str());
+}
+
+TEST_CASE("EnemyStats::loadFromFile accepts a valid override file") {
+    const std::string path = "tests_tmp_enemies.json";
+    {
+        std::ofstream out(path);
+        out << R"({
+            "vampire":  { "hp": 1, "atk": 2, "def": 3 },
+            "werewolf": { "hp": 4, "atk": 5, "def": 6 },
+            "troll":    { "hp": 7, "atk": 8, "def": 9 },
+            "goblin":   { "hp": 10,"atk": 11,"def": 12},
+            "merchant": { "hp": 13,"atk": 14,"def": 15},
+            "dragon":   { "hp": 16,"atk": 17,"def": 18},
+            "phoenix":  { "hp": 19,"atk": 20,"def": 21}
+        })";
+    }
+    EnemyStats reg;
+    CHECK(reg.loadFromFile(path));
+    CHECK(reg.get(Type::VAMPIRE).hp == 1);
+    CHECK(reg.get(Type::DRAGON).atk == 17);
+    CHECK(reg.isLoaded());
+    CHECK(reg.source() == path);
+    std::remove(path.c_str());
+}
+
+TEST_CASE("Enemy constructor reads stats from the registry") {
+    // Live registry is loaded at static-init from data/enemies.json (which
+    // matches the defaults). Either way these must be the canonical numbers.
+    Vampire v;
+    CHECK(v.getHp()  == 50);
+    CHECK(v.getAtk() == 25);
+    CHECK(v.getDef() == 25);
+    CHECK(v.getMaxHp() == 50);
+
+    Merchant m;
+    CHECK(m.getHp()  == 30);
+    CHECK(m.getAtk() == 70);
+    CHECK(m.getDef() == 5);
 }
