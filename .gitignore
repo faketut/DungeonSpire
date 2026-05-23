@@ -6,6 +6,11 @@ src/cc3k+
 src/cc3k.zip
 tests/run_tests
 
+# CMake out-of-tree build dirs
+build/
+build-*/
+cmake-build-*/
+
 # LaTeX build outputs
 design/out/
 *.aux
