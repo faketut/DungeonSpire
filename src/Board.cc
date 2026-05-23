@@ -1,6 +1,7 @@
 #ifndef BOARD_CC
 #define BOARD_CC
 #include "Board.h"
+#include "EventBus.h"
 
 Tile::Tile(Position pos, std::shared_ptr<Entity>const& ent, Type type) : pos(pos), entity(ent), t(type) {}
 Position Tile::getPosition()const{return pos;}
@@ -99,6 +100,7 @@ std::vector<std::shared_ptr<Tile>> Board::getFloorTile()const{
 
 void Board::setFloorId(int i){
     floorId=i;
+    cc3k::EventBus::getInstance()->publish(cc3k::events::FloorChanged{i});
 }
 void Board::setBarrierSuit(){
     setSuit=true;

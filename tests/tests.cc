@@ -9,6 +9,7 @@
 #include "../src/Enum.h"
 #include "../src/Quest.h"
 #include "../src/Board.h"
+#include "../src/EventBus.h"
 
 TEST_CASE("Position::distanceTo is Manhattan distance") {
     Position a{0, 0};
@@ -305,4 +306,115 @@ TEST_CASE("Board floor id is settable and readable") {
     CHECK(b.getFloorId() == 2);
     b.setCompassPickedUp(true);
     CHECK(b.isCompassPickedUp());
+}
+
+// -----------------------------------------------------------------------------
+// Phase 2.5 — EventBus
+// -----------------------------------------------------------------------------
+
+TEST_CASE("EventBus publish without subscribers is a no-op") {
+    cc3k::EventBus bus;
+    bus.publish(cc3k::events::FloorChanged{3}); // must not throw / crash
+    CHECK(bus.handlerCount() == 0u);
+}
+
+TEST_CASE("EventBus delivers a typed event to its subscriber") {
+    cc3k::EventBus bus;
+    int seen = -1;
+    bus.subscribe<cc3k::events::FloorChanged>(
+        [&seen](const cc3k::events::FloorChanged& e) { seen = e.newFloorId; });
+    bus.publish(cc3k::events::FloorChanged{7});
+    CHECK(seen == 7);
+}
+
+TEST_CASE("EventBus dispatches only to handlers of the matching event type") {
+    cc3k::EventBus bus;
+    int floors = 0;
+    int deaths = 0;
+    bus.subscribe<cc3k::events::FloorChanged>(
+        [&floors](const cc3k::events::FloorChanged&) { ++floors; });
+    bus.subscribe<cc3k::events::EnemyDied>(
+        [&deaths](const cc3k::events::EnemyDied&) { ++deaths; });
+    bus.publish(cc3k::events::FloorChanged{1});
+    bus.publish(cc3k::events::FloorChanged{2});
+    bus.publish(cc3k::events::EnemyDied{0, 1, 1});
+    CHECK(floors == 2);
+    CHECK(deaths == 1);
+}
+
+TEST_CASE("EventBus supports multiple subscribers for the same event") {
+    cc3k::EventBus bus;
+    int a = 0, b = 0;
+    bus.subscribe<cc3k::events::FloorChanged>(
+        [&a](const cc3k::events::FloorChanged&) { ++a; });
+    bus.subscribe<cc3k::events::FloorChanged>(
+        [&b](const cc3k::events::FloorChanged&) { ++b; });
+    bus.publish(cc3k::events::FloorChanged{0});
+    CHECK(a == 1);
+    CHECK(b == 1);
+    CHECK(bus.handlerCount<cc3k::events::FloorChanged>() == 2u);
+}
+
+TEST_CASE("EventBus unsubscribe removes exactly one handler") {
+    cc3k::EventBus bus;
+    int hits = 0;
+    auto id = bus.subscribe<cc3k::events::FloorChanged>(
+        [&hits](const cc3k::events::FloorChanged&) { ++hits; });
+    bus.subscribe<cc3k::events::FloorChanged>(
+        [&hits](const cc3k::events::FloorChanged&) { ++hits; });
+    CHECK(bus.unsubscribe<cc3k::events::FloorChanged>(id));
+    bus.publish(cc3k::events::FloorChanged{0});
+    CHECK(hits == 1);
+    // Unsubscribing the same id again is a no-op and returns false.
+    CHECK_FALSE(bus.unsubscribe<cc3k::events::FloorChanged>(id));
+}
+
+TEST_CASE("EventBus is safe against (un)subscribe during dispatch") {
+    cc3k::EventBus bus;
+    int hits = 0;
+    bus.subscribe<cc3k::events::FloorChanged>(
+        [&bus, &hits](const cc3k::events::FloorChanged&) {
+            ++hits;
+            // Adding a new subscriber mid-dispatch must not invalidate the
+            // iteration of the current publish().
+            bus.subscribe<cc3k::events::FloorChanged>(
+                [](const cc3k::events::FloorChanged&) {});
+        });
+    bus.publish(cc3k::events::FloorChanged{0});
+    CHECK(hits == 1);
+    CHECK(bus.handlerCount<cc3k::events::FloorChanged>() == 2u);
+}
+
+TEST_CASE("EventBus::clear drops all handlers") {
+    cc3k::EventBus bus;
+    bus.subscribe<cc3k::events::FloorChanged>(
+        [](const cc3k::events::FloorChanged&) {});
+    bus.subscribe<cc3k::events::EnemyDied>(
+        [](const cc3k::events::EnemyDied&) {});
+    CHECK(bus.handlerCount() == 2u);
+    bus.clear();
+    CHECK(bus.handlerCount() == 0u);
+}
+
+TEST_CASE("Board::setFloorId publishes FloorChanged on the singleton bus") {
+    auto* bus = cc3k::EventBus::getInstance();
+    bus->clear(); // isolate from any prior wiring
+    int observed = -1;
+    int callCount = 0;
+    auto id = bus->subscribe<cc3k::events::FloorChanged>(
+        [&](const cc3k::events::FloorChanged& e) {
+            observed = e.newFloorId;
+            ++callCount;
+        });
+
+    PRNG::seed(1);
+    Board b("./src/files/default.txt", 0);
+    b.setFloorId(4);
+    b.setFloorId(5);
+
+    CHECK(callCount == 2);
+    CHECK(observed == 5);
+
+    bus->unsubscribe<cc3k::events::FloorChanged>(id);
+    bus->clear();
 }
