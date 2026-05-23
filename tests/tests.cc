@@ -883,4 +883,5 @@ TEST_CASE("FloorStats::loadFromFile rejects malformed JSON") {
     FloorStats s;
     CHECK_FALSE(s.loadFromFile(path));
     CHECK(s.potions() == 10);
+    std::remove(path.c_str());
 }

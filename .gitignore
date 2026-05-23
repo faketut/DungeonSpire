@@ -23,3 +23,7 @@ design/out/
 
 # macOS debug bundles
 *.dSYM/
+
+# Stray test temp files (see tests/tests.cc cleanup)
+/tests_tmp_*
+tests_tmp_*
