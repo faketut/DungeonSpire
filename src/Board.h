@@ -15,9 +15,8 @@
 
 const int BOARD_WIDTH = 79;
 const int BOARD_HEIGHT = 25;
-const int POTION_CNT = 10;
-const int GOLD_CNT = 10;
-const int ENEMY_CNT = 20;
+// Per-floor generation counts moved to FloorStats (data/floor.json).
+// Read via FloorStats::getInstance()->potions()/gold()/enemies().
 
 class Board; // Forward declaration for Board
 

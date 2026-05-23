@@ -1,0 +1,6 @@
+{
+  "_comment": "Per-floor generation counts. Loaded by FloorStats registry. Defaults mirror the historical const-globals in Board.h.",
+  "potions": 10,
+  "gold":    10,
+  "enemies": 20
+}

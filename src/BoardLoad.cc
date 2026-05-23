@@ -1,4 +1,5 @@
 #include "Board.h"
+#include "FloorStats.h"
 #include "Quest.h"
 #include "QuestManager.h"
 #include <iostream>
@@ -37,7 +38,7 @@ void Board::initFloor() {
         floorTiles.erase(std::remove(floorTiles.begin(), floorTiles.end(), tile), floorTiles.end());
 
         // Generate potions
-        for (int i = 0; i < POTION_CNT; ++i) {
+        for (int i = 0, n = FloorStats::getInstance()->potions(); i < n; ++i) {
             tile = getRandomTile(floorTiles);
             auto pos=tile->getPosition();
             if (!tile) break;  // Avoid invalid access
@@ -50,7 +51,7 @@ void Board::initFloor() {
         }
 
         // Generate gold
-        for (int i = 0; i < GOLD_CNT; ++i) {
+        for (int i = 0, n = FloorStats::getInstance()->gold(); i < n; ++i) {
             tile = getRandomTile(floorTiles);
             auto pos=tile->getPosition();
             if (!tile) break;
@@ -80,7 +81,8 @@ void Board::initFloor() {
         // Generate enemies
         bool setCompass = false;
         int generatedCount = 0;
-        while (generatedCount < ENEMY_CNT && !floorTiles.empty()) {
+        const int enemyCnt = FloorStats::getInstance()->enemies();
+        while (generatedCount < enemyCnt && !floorTiles.empty()) {
             tile = getRandomTile(floorTiles);
             auto pos=tile->getPosition();
             if (!tile) continue;

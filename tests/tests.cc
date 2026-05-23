@@ -831,3 +831,56 @@ TEST_CASE("PlayerCharacter::setAttributes works for every supported race") {
         CHECK(pc.getMaxHp() == s.maxHp);
     }
 }
+
+// ---------------------------------------------------------------------------
+// Phase 3.9d — floor generation counts data-driven
+// ---------------------------------------------------------------------------
+
+#include "../src/FloorStats.h"
+
+TEST_CASE("FloorStats built-in defaults match the historical const-globals") {
+    FloorStats s;
+    CHECK(s.potions() == 10);
+    CHECK(s.gold()    == 10);
+    CHECK(s.enemies() == 20);
+}
+
+TEST_CASE("FloorStats::loadFromFile overrides counts from JSON") {
+    const std::string path = "tests_tmp_floor.json";
+    {
+        std::ofstream o(path);
+        o << R"({"potions":3,"gold":4,"enemies":7})";
+    }
+    FloorStats s;
+    REQUIRE(s.loadFromFile(path));
+    CHECK(s.isLoaded());
+    CHECK(s.source()  == path);
+    CHECK(s.potions() == 3);
+    CHECK(s.gold()    == 4);
+    CHECK(s.enemies() == 7);
+    std::remove(path.c_str());
+}
+
+TEST_CASE("FloorStats::loadFromFile rejects JSON missing required keys") {
+    const std::string path = "tests_tmp_floor_bad.json";
+    {
+        std::ofstream o(path);
+        o << R"({"potions":5,"gold":5})"; // missing 'enemies'
+    }
+    FloorStats s;
+    CHECK_FALSE(s.loadFromFile(path));
+    CHECK(s.potions() == 10); // defaults intact
+    CHECK(s.enemies() == 20);
+    std::remove(path.c_str());
+}
+
+TEST_CASE("FloorStats::loadFromFile rejects malformed JSON") {
+    const std::string path = "tests_tmp_floor_bad2.json";
+    {
+        std::ofstream o(path);
+        o << "not json";
+    }
+    FloorStats s;
+    CHECK_FALSE(s.loadFromFile(path));
+    CHECK(s.potions() == 10);
+}
