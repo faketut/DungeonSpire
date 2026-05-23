@@ -3,9 +3,12 @@
 #include <algorithm>
 #include <ctime>
 #include <iostream>
+#include <memory>
 #include <sstream>
 #include <string>
 #include "Game.h"
+#include "AnsiRenderer.h"
+#include "EffectManager.h"
 #include "Quest.h"
 #include "QuestManager.h"
 
@@ -109,7 +112,8 @@ Game::Game(int seed, std::string fn, bool wealtherEnabled, bool questEnabled,
       wealtherEnabled(wealtherEnabled), questEnabled(questEnabled),
       seedValue(static_cast<std::uint32_t>(seed)),
       savePath(std::move(savePath_)),
-      pendingLoad(std::move(pendingLoad_)) {
+      pendingLoad(std::move(pendingLoad_)),
+      renderer(std::make_unique<cc3k::AnsiRenderer>(std::cout)) {
     PRNG::seed(seedValue);
     if (questEnabled) {
         initializeQuests();
@@ -151,11 +155,11 @@ void Game::restart() {
     board->setMaxFloorId(filename);
     if(filename!="./files/default.txt"){
         board->loadBoard(board->getFloorId(),filename,toTypeBoard);
-        board->displayBoard();
+        renderer->drawInitialBoard(*board);
         board->initByFile(board->getFloorId());
     }else{
         board->loadBoard(board->getFloorId(),filename,toTypeBoard);
-        board->displayBoard();
+        renderer->drawInitialBoard(*board);
         board->initFloor();
     }
     
@@ -210,44 +214,32 @@ void Game::restart() {
 }
 
 void Game::renderInfo() {
-    if(board) {
-        auto player = std::dynamic_pointer_cast<PlayerCharacter>(board->getPc()->getEntity());
-        if(player) {
-            std::string race = toString(player->getRace());
-            std::cout << "Race: " <<  race << 
-            " Gold: " << player->getGold() <<
-            "\t\t\t\t\t\t\tFloor " << board->getFloorId()+1 << std::endl; 
-            std::cout << "HP: " << player->getHp() << std::endl <<
-            "Atk: " << player->getAtk() << std::endl <<
-            "Def: " << player->getDef() << std::endl << 
-            "Action: " << dialog << std::endl;
-            
-            // Display active quests if enabled
-            if (questEnabled) {
-                auto questManager = QuestManager::getInstance();
-                const auto& activeQuests = questManager->getActiveQuests();
-                
-                if (!activeQuests.empty()) {
-                    std::cout << "\nActive Quests:\n";
-                    for (const auto& quest : activeQuests) {
-                        std::cout << "- " << quest->getDescription() << "\n";
-                    }
-                }
-            }
-            // Display weather if enabled
-            if (wealtherEnabled) {
-                std::cout << std::endl << 
-                    EffectManager::getInstance()->getCurrentWeatherDescription() << 
-                    std::endl <<
-                    "Speed: " <<player->getMovementSpeed() <<std::endl;
-            }
-            
-        }
+    if(!board) return;
+    auto player = std::dynamic_pointer_cast<PlayerCharacter>(board->getPc()->getEntity());
+    if(!player) return;
+    cc3k::HudInfo hud;
+    hud.race = toString(player->getRace());
+    hud.gold = player->getGold();
+    hud.floor = board->getFloorId() + 1;
+    hud.hp = player->getHp();
+    hud.atk = player->getAtk();
+    hud.def = player->getDef();
+    hud.action = dialog;
+    hud.questEnabled = questEnabled;
+    if (questEnabled) {
+        const auto& q = QuestManager::getInstance()->getActiveQuests();
+        hud.activeQuests.reserve(q.size());
+        for (const auto& quest : q) hud.activeQuests.push_back(quest->getDescription());
     }
+    hud.weatherEnabled = wealtherEnabled;
+    if (wealtherEnabled) {
+        hud.weather = EffectManager::getInstance()->getCurrentWeatherDescription();
+        hud.movementSpeed = player->getMovementSpeed();
+    }
+    renderer->drawHud(hud);
 }
 void Game::renderBoard() {
-    // 渲染或显示当前棋盘状态的逻辑
-    if(board) board->printBoard(); // 假设 Board 类有一个 print 方法用于打印棋盘
+    if(board) renderer->drawBoard(*board);
 }
 void Game::run() {
 

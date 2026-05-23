@@ -577,3 +577,64 @@ TEST_CASE("SaveGame::save then load round-trips on disk") {
     CHECK(r->player.gold == 250);
     std::remove(path.c_str());
 }
+
+// ---------------------------------------------------------------------------
+// Phase 3.8a — IRenderer extraction (AnsiRenderer HUD)
+// ---------------------------------------------------------------------------
+
+#include <sstream>
+#include "../src/AnsiRenderer.h"
+
+TEST_CASE("AnsiRenderer::drawHud writes the expected base lines") {
+    std::ostringstream os;
+    cc3k::AnsiRenderer r(os);
+    cc3k::HudInfo h;
+    h.race = "Human";
+    h.gold = 42;
+    h.floor = 3;
+    h.hp = 100;
+    h.atk = 20;
+    h.def = 15;
+    h.action = "moved north";
+    r.drawHud(h);
+    const std::string s = os.str();
+    CHECK(s.find("Race: Human") != std::string::npos);
+    CHECK(s.find("Gold: 42") != std::string::npos);
+    CHECK(s.find("Floor 3") != std::string::npos);
+    CHECK(s.find("HP: 100") != std::string::npos);
+    CHECK(s.find("Atk: 20") != std::string::npos);
+    CHECK(s.find("Def: 15") != std::string::npos);
+    CHECK(s.find("Action: moved north") != std::string::npos);
+    // Optional sections are off by default.
+    CHECK(s.find("Active Quests") == std::string::npos);
+    CHECK(s.find("Speed:") == std::string::npos);
+}
+
+TEST_CASE("AnsiRenderer::drawHud renders quests and weather when enabled") {
+    std::ostringstream os;
+    cc3k::AnsiRenderer r(os);
+    cc3k::HudInfo h;
+    h.race = "Elf";
+    h.questEnabled = true;
+    h.activeQuests = {"Kill 5 goblins", "Find the orb"};
+    h.weatherEnabled = true;
+    h.weather = "Heavy fog";
+    h.movementSpeed = 2;
+    r.drawHud(h);
+    const std::string s = os.str();
+    CHECK(s.find("Active Quests:") != std::string::npos);
+    CHECK(s.find("- Kill 5 goblins") != std::string::npos);
+    CHECK(s.find("- Find the orb") != std::string::npos);
+    CHECK(s.find("Heavy fog") != std::string::npos);
+    CHECK(s.find("Speed: 2") != std::string::npos);
+}
+
+TEST_CASE("AnsiRenderer::drawHud omits empty quest section when enabled but empty") {
+    std::ostringstream os;
+    cc3k::AnsiRenderer r(os);
+    cc3k::HudInfo h;
+    h.race = "Orc";
+    h.questEnabled = true;          // enabled but list empty
+    r.drawHud(h);
+    CHECK(os.str().find("Active Quests") == std::string::npos);
+}

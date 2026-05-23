@@ -7,10 +7,12 @@
 #include <unordered_map>
 #include <cstdlib>
 #include <ctime>
+#include <memory>
 #include <optional>
 #include "Board.h"
 #include "Enum.h"
 #include "Enemy.h"
+#include "Renderer.h"
 #include "SaveGame.h"
 
 class Game {
@@ -24,6 +26,7 @@ class Game {
     std::uint32_t seedValue;             // original seed, echoed into saves
     std::string savePath;                // empty = no save-on-quit
     std::optional<cc3k::SaveData> pendingLoad;
+    std::unique_ptr<cc3k::IRenderer> renderer;
 public:
     Game(int seed, std::string filename, bool wealtherEnabled, bool questEnabled,
          std::string savePath = std::string{},

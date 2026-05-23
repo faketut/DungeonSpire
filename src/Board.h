@@ -97,8 +97,9 @@ public:
     template<typename Func>
     void loadBoard(int floorId, std::string& filename,Func processChar);
     void initByFile(int floorId);
-    void displayBoard() const;
-    void printBoard() const;
+    // Rendering moved to cc3k::IRenderer (see Renderer.h / AnsiRenderer.h);
+    // Board exposes getTiles() so renderers can walk the full grid.
+    const std::vector<std::vector<std::shared_ptr<Tile>>>& getTiles() const { return tiles; }
     std::shared_ptr<Entity> createEntity(Type type, const Position& pos);
 
     // Data Query
