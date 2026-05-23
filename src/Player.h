@@ -7,6 +7,7 @@
 #include <memory>
 #include "Enum.h"
 #include "Entity.h"
+#include "RaceStats.h"
 #include <unordered_map>
 
 class PlayerCharacter : public Entity {
@@ -36,36 +37,14 @@ public:
 
     // Sets attributes based on race
     void setAttributes(Race r) {
-        // Reset to default values first
-        maxHp = DEFAULT_MAX_HP;
-        hp = DEFAULT_HP;
-        atk = DEFAULT_ATK;
-        def = DEFAULT_DEF;
-        goldModifier = DEFAULT_GOLD_MODIFIER;
-
-        // Apply race-specific modifications
-        switch (r) {
-            case Race::HUMAN:
-                // No additional modifications needed
-                break;
-            case Race::DWARF:
-                maxHp = hp = 100;
-                def = 30;
-                goldModifier = 2.0;
-                break;
-            case Race::ELF:
-                atk = 30;
-                def = 10;
-                break;
-            case Race::ORC:
-                maxHp = hp = 180;
-                atk = 30;
-                def = 25;
-                goldModifier = 0.5;
-                break;
-            default:
-                throw std::invalid_argument("Invalid race provided: " + std::to_string(static_cast<int>(r)));
-        }
+        // Pull base stats from the data-driven registry. Throws if the race
+        // is unknown (preserving the historical invalid-race contract).
+        const auto& s = RaceStats::getInstance()->get(r);
+        maxHp = s.maxHp;
+        hp = s.maxHp;
+        atk = s.atk;
+        def = s.def;
+        goldModifier = s.goldModifier;
         race = r;
     }
     void setHp(int delta){

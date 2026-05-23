@@ -1,0 +1,7 @@
+{
+  "_comment": "Race base-stat table. Loaded by RaceStats registry. Keys are lowercase race names. Defaults mirror the original hardcoded setAttributes() switch.",
+  "human": { "maxHp": 140, "atk": 20, "def": 20, "goldModifier": 1.0 },
+  "dwarf": { "maxHp": 100, "atk": 20, "def": 30, "goldModifier": 2.0 },
+  "elf":   { "maxHp": 140, "atk": 30, "def": 10, "goldModifier": 1.0 },
+  "orc":   { "maxHp": 180, "atk": 30, "def": 25, "goldModifier": 0.5 }
+}

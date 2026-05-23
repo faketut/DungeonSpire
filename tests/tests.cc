@@ -757,3 +757,77 @@ TEST_CASE("RestoreHealthEffect uses ItemStats::getPotionDelta") {
     e.apply(pc);
     CHECK(pc->getHp() == hpBefore + delta);
 }
+
+// ---------------------------------------------------------------------------
+// Phase 3.9c — race base stats data-driven
+// ---------------------------------------------------------------------------
+
+#include "../src/RaceStats.h"
+
+TEST_CASE("RaceStats built-in defaults match the historical setAttributes()") {
+    RaceStats s;
+    CHECK(s.get(Race::HUMAN).maxHp        == 140);
+    CHECK(s.get(Race::HUMAN).atk          == 20);
+    CHECK(s.get(Race::HUMAN).def          == 20);
+    CHECK(s.get(Race::HUMAN).goldModifier == doctest::Approx(1.0));
+    CHECK(s.get(Race::DWARF).maxHp        == 100);
+    CHECK(s.get(Race::DWARF).def          == 30);
+    CHECK(s.get(Race::DWARF).goldModifier == doctest::Approx(2.0));
+    CHECK(s.get(Race::ELF).atk            == 30);
+    CHECK(s.get(Race::ELF).def            == 10);
+    CHECK(s.get(Race::ORC).maxHp          == 180);
+    CHECK(s.get(Race::ORC).goldModifier   == doctest::Approx(0.5));
+}
+
+TEST_CASE("RaceStats::loadFromFile overrides defaults from JSON") {
+    const std::string path = "tests_tmp_races.json";
+    {
+        std::ofstream o(path);
+        o << R"({"human":{"maxHp":999,"atk":99,"def":88,"goldModifier":3.5}})";
+    }
+    RaceStats s;
+    REQUIRE(s.loadFromFile(path));
+    CHECK(s.isLoaded());
+    CHECK(s.source() == path);
+    CHECK(s.get(Race::HUMAN).maxHp        == 999);
+    CHECK(s.get(Race::HUMAN).atk          == 99);
+    CHECK(s.get(Race::HUMAN).def          == 88);
+    CHECK(s.get(Race::HUMAN).goldModifier == doctest::Approx(3.5));
+    std::remove(path.c_str());
+}
+
+TEST_CASE("RaceStats::loadFromFile rejects entries missing required keys") {
+    const std::string path = "tests_tmp_races_bad.json";
+    {
+        std::ofstream o(path);
+        o << R"({"human":{"maxHp":100,"atk":10}})"; // missing def + goldModifier
+    }
+    RaceStats s;
+    CHECK_FALSE(s.loadFromFile(path));
+    // Defaults intact.
+    CHECK(s.get(Race::HUMAN).maxHp == 140);
+    std::remove(path.c_str());
+}
+
+TEST_CASE("PlayerCharacter::setAttributes pulls base stats from RaceStats") {
+    PlayerCharacter pc;
+    pc.setAttributes(Race::DWARF);
+    auto* reg = RaceStats::getInstance();
+    CHECK(pc.getMaxHp()       == reg->get(Race::DWARF).maxHp);
+    CHECK(pc.getHp()          == reg->get(Race::DWARF).maxHp);
+    CHECK(pc.getAtk()         == reg->get(Race::DWARF).atk);
+    CHECK(pc.getDef()         == reg->get(Race::DWARF).def);
+    CHECK(pc.getGoldModifier() == doctest::Approx(reg->get(Race::DWARF).goldModifier));
+    CHECK(static_cast<int>(pc.getRace()) == static_cast<int>(Race::DWARF));
+}
+
+TEST_CASE("PlayerCharacter::setAttributes works for every supported race") {
+    for (Race r : {Race::HUMAN, Race::DWARF, Race::ELF, Race::ORC}) {
+        PlayerCharacter pc;
+        pc.setAttributes(r);
+        const auto& s = RaceStats::getInstance()->get(r);
+        CHECK(pc.getAtk() == s.atk);
+        CHECK(pc.getDef() == s.def);
+        CHECK(pc.getMaxHp() == s.maxHp);
+    }
+}
