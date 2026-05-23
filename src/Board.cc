@@ -2,11 +2,11 @@
 #define BOARD_CC
 #include "Board.h"
 
-Tile::Tile(Position pos, std::shared_ptr<Entity>const& ent, Type type,std::shared_ptr<Board>const& b) : pos(pos), entity(ent), t(type),board(b) {}
+Tile::Tile(Position pos, std::shared_ptr<Entity>const& ent, Type type) : pos(pos), entity(ent), t(type) {}
 Position Tile::getPosition()const{return pos;}
 int Tile::getX()const{return pos.getX();}
 int Tile::getY()const{return pos.getY();}
-bool Tile::near(const Position& other) {return pos.near(other); }
+bool Tile::near(const Position& other) const {return pos.near(other); }
 Type Tile::getType()const{return t;}
 void Tile::setType(Type type){t=type;}
 void Tile::setPosition(const Position& newPos) {pos.setPosition(newPos);}
@@ -123,6 +123,7 @@ void Board::movePc(Direction dir) {
     dialog.clear();
     
     auto player=std::dynamic_pointer_cast<PlayerCharacter>(pt->getEntity());
+    if (!player) return;
     if(player->getMovementSpeed()<1) return;
     
     Position pos = convertDirection(*pt, dir);
@@ -156,8 +157,11 @@ void Board::movePc(Direction dir) {
 
 void Board::moveEnemy(Tile& t){
     if (t.getType() == Type::DRAGON) return;
-    if (rand() % 3) return;
-    int random = rand() % 8;
+    // ~33% chance the enemy acts on this tick.
+    constexpr int ENEMY_ACT_DENOM = 3;
+    if (rand() % ENEMY_ACT_DENOM) return;
+    constexpr int DIRECTION_COUNT = 8;
+    int random = rand() % DIRECTION_COUNT;
     Direction dir;
     switch (random) {
         case 0: dir=Direction::no;break;
@@ -208,7 +212,7 @@ void Board::initFloor() {
         if (!tile) return;
         auto player = std::make_shared<PlayerCharacter>();
         auto pos = tile->getPosition();
-        pt = std::make_shared<Tile>(pos, player, Type::PLAYER, shared_from_this());
+        pt = std::make_shared<Tile>(pos, player, Type::PLAYER);
         tile->setPosition(pos);
         tile->setType(Type::FLOOR);
         floorTiles.erase(std::remove(floorTiles.begin(), floorTiles.end(), tile), floorTiles.end());
@@ -329,6 +333,7 @@ void Board::initFloor() {
 
 bool Board::nextFloor() {
     auto player=std::dynamic_pointer_cast<PlayerCharacter>(pt->getEntity());
+    if (!player) return false;
     if (!player->isAlive() ||
         (filename!="./files/default.txt"&&getFloorId()==getMaxFloorId()-1)||
         (filename=="./files/default.txt"&&getFloorId()==4)){
@@ -337,7 +342,7 @@ bool Board::nextFloor() {
     }
 
     auto p = std::dynamic_pointer_cast<PlayerCharacter>(pt->getEntity());
-    EffectManager::getInstance()->clearTemporaryEffects(*p);
+    if (p) EffectManager::getInstance()->clearTemporaryEffects(p);
     floorId++;
     compassPickedUp = false;
     if (filename != "./files/default.txt") {
@@ -407,7 +412,7 @@ std::shared_ptr<Entity> Board::getEntity(Type type, Position& pos) {
         ent = ItemGenerator::generateBarrierSuit();
     } else if (type == Type::PLAYER) {
         auto player = std::make_shared<PlayerCharacter>();
-        pt = std::make_shared<Tile>(pos, player, Type::PLAYER, shared_from_this());
+        pt = std::make_shared<Tile>(pos, player, Type::PLAYER);
         ent=player; 
     }else{
         ent=nullptr;
@@ -424,11 +429,6 @@ void Board::setBarrierSuit(){
 }
 bool Board::getSetSuit()const{return setSuit;}
 void Board::setCompassPickedUp(bool b){compassPickedUp=b;}
-class LoadException : public std::runtime_error {
-public:
-    explicit LoadException(const std::string& message)
-        : std::runtime_error(message) {}
-};
 int Board::getMaxFloorId()const{return maxFloorId;}
 
 void Board::setMaxFloorId(std::string fn){
@@ -521,14 +521,27 @@ void Board::initByFile(int floorId) {
             }
         }
 
-        // Third pass: Handle special relationships (dragons and protected items, compass)
-        auto compass = ItemGenerator::generateCompass();
-        auto neighbours=getAllEnemyTileExceptDragonAndMerchant();
-        auto tile=getRandomTile(neighbours);
-        if(tile) {
-            auto enemy=std::dynamic_pointer_cast<Enemy>(tile->getEntity());
-            if (enemy){
-                enemy->setProtectedItem(compass,tile->getPosition());
+        // Third pass: Handle special relationships (dragons and protected items, compass).
+        // Honor any compass tile present in the file by attaching it to a non-Dragon/Merchant
+        // enemy if one exists; otherwise (no compass tile in the file) generate one and assign
+        // it to a random enemy, matching initFloor() behavior.
+        std::shared_ptr<Item> compass;
+        for (int y = 0; y < BOARD_HEIGHT && !compass; ++y) {
+            for (int x = 0; x < BOARD_WIDTH && !compass; ++x) {
+                auto tile = tiles[y][x];
+                if (tile && tile->getType() == Type::COMPASS) {
+                    auto item = std::dynamic_pointer_cast<Item>(tile->getEntity());
+                    if (item) compass = item;
+                }
+            }
+        }
+        if (!compass) compass = ItemGenerator::generateCompass();
+        auto compassCandidates = getAllEnemyTileExceptDragonAndMerchant();
+        auto compassHolder = getRandomTile(compassCandidates);
+        if (compassHolder) {
+            auto enemy = std::dynamic_pointer_cast<Enemy>(compassHolder->getEntity());
+            if (enemy) {
+                enemy->setProtectedItem(compass, compassHolder->getPosition());
             }
         }
         for (int y = 0; y < BOARD_HEIGHT; ++y) {
@@ -584,7 +597,7 @@ std::shared_ptr<Entity> Board::createEntity(Type type, const Position& pos) {
     } 
     else if (type == Type::PLAYER) {
         auto player = std::make_shared<PlayerCharacter>();
-        pt = std::make_shared<Tile>(pos, player, Type::PLAYER, shared_from_this());
+        pt = std::make_shared<Tile>(pos, player, Type::PLAYER);
         return nullptr;
     }
     return nullptr;
@@ -602,45 +615,10 @@ void Board::displayBoard() const {
               << "\t\t\t\t\t\t\tFloor " << 1 << std::endl
               << "HP: 20\nAtk: 20\nDef: 20\nAction:" << std::endl;
 }
-template<typename Func>
-void Board::loadBoard(int floorId, std::string& filename, Func processChar) {
-    // Open the file
-    std::ifstream fs(filename);
-    if (!fs.is_open()) {
-        throw LoadException("Failed to open file: " + filename);
-    }
-
-    // Skip lines that do not belong to the current floor
-    std::string line;
-    int skipLines = floorId * BOARD_HEIGHT;
-    for (int i = 0; i < skipLines && std::getline(fs, line); ++i);
-
-    // Load the current floor
-    int y = 0;enemyTiles.clear();
-    while (std::getline(fs, line) && y < BOARD_HEIGHT) {
-        if (line.length() < BOARD_WIDTH) {
-            throw LoadException("Error: Line " + std::to_string(y) +
-                                     " has fewer columns than expected (" +
-                                     std::to_string(BOARD_WIDTH) + ").");
-        }
-
-        for (int x = 0; x < BOARD_WIDTH; ++x) {
-            tiles[y][x] = std::make_shared<Tile>(
-                Position(x, y), nullptr, processChar(line[x]), shared_from_this());
-        }
-        ++y;
-    }
-
-    // Validate the number of rows
-    if (y != BOARD_HEIGHT) {
-        throw LoadException("Error: File contains fewer rows than expected (" +
-                                 std::to_string(BOARD_HEIGHT) + ").");
-    }
-}
 void Board::printBoard() const {
     auto pcPos = pt->getPosition();
     auto player = std::dynamic_pointer_cast<PlayerCharacter>(pt->getEntity());
-    int visibility = player->getVisibility();
+    int visibility = player ? player->getVisibility() : 8;
     
     std::cout << std::endl;
     for (int y = 0; y < BOARD_HEIGHT; y++) {
@@ -670,21 +648,25 @@ int Board::getFloorId() const{return floorId;}
 void Board::pickUp(Direction dir){
     auto pos=convertDirection(*pt,dir);
     auto tile = getTile(pos);
+    if (!tile) return;
     auto tileType=tile->getType();
     auto player=std::dynamic_pointer_cast<PlayerCharacter>(pt->getEntity());
+    if (!player) return;
     if (TypeCategories::isPotion(tileType)) {
         auto item=std::dynamic_pointer_cast<Potion>(tile->getEntity());
-        item->use(player);
-        dialog="PC uses "+toString(item->getType());
+        if (item) {
+            item->use(player);
+            dialog="PC uses "+toString(item->getType());
+        }
     }else if(TypeCategories::isGold(tileType)){
         auto item=std::dynamic_pointer_cast<Gold>(tile->getEntity());
+        if (!item) return;
         if(tileType==Type::DRAGON_HOARD &&item->isProtected()){
             dialog="PC fails to pick up protected Dragon Hoard";
             return;
         }else{
             item->getGold(player);
             dialog="PC picks up "+toString(item->getType());
-            auto player=std::dynamic_pointer_cast<PlayerCharacter>(pt->getEntity());
             player->setScore(item->getValue());
         }
     }else if (tileType==Type::COMPASS){
@@ -692,11 +674,11 @@ void Board::pickUp(Direction dir){
         dialog="PC picks up Compass and stairway is now appeared";
     }else if (tileType==Type::BARRIER_SUIT){
         auto item=std::dynamic_pointer_cast<Item>(tile->getEntity());
+        if (!item) return;
         if(item->isProtected()) {
             dialog="PC fails to pick up protected Barrier suit";
             return;
         }else {
-            auto player=std::dynamic_pointer_cast<PlayerCharacter>(pt->getEntity());
             player->setBarrierSuit();
             dialog="PC picks up Barrier suit";
         }
@@ -704,7 +686,7 @@ void Board::pickUp(Direction dir){
     player->incrementItemCount(tileType);
     setTile(pos,Type::FLOOR);
 }
-bool Board::isValidMove(Tile& t, Position& pos) const {
+bool Board::isValidMove(const Tile& t, const Position& pos) const {
     auto objType = t.getType();
     auto tile = getTile(pos);
     if (!tile) return false; // Ensure tile exists
@@ -721,7 +703,7 @@ std::string Board::seeDiaHelp(Direction dir) {
     auto tile=getTile(pos);
     auto tileType=tile->getType();
     if(TypeCategories::isPotion(tileType))  dialog+= " and sees an unknown potion";
-    else if (TypeCategories::isGold(tileType)) dialog+=  " and sees an unknow gold";
+    else if (TypeCategories::isGold(tileType)) dialog+=  " and sees an unknown gold";
     else dialog+=  "";
     return dialog;
 }
@@ -729,12 +711,18 @@ std::string Board::seeDiaHelp(Direction dir) {
 std::string Board::diaHelp() {
     return dialog;
 }
-std::vector<std::shared_ptr<Tile>> Board::getNeighbourTiles(const Position& pos,Type t) const{
+std::vector<std::shared_ptr<Tile>> Board::getNeighbourTiles(const Position& pos, Type t) const{
     std::vector<std::shared_ptr<Tile>> neighbours;
-    for(auto& row:tiles){
-        for(auto& tile:row){
-            if(tile->near(pos) && tile->getType()==t){
-                if(tile->getPosition()==pos) continue;
+    int cx = pos.getX();
+    int cy = pos.getY();
+    for (int dy = -1; dy <= 1; ++dy) {
+        for (int dx = -1; dx <= 1; ++dx) {
+            if (dx == 0 && dy == 0) continue;
+            int nx = cx + dx;
+            int ny = cy + dy;
+            if (nx < 0 || nx >= BOARD_WIDTH || ny < 0 || ny >= BOARD_HEIGHT) continue;
+            const auto& tile = tiles[ny][nx];
+            if (tile && tile->getType() == t) {
                 neighbours.emplace_back(tile);
             }
         }
@@ -743,18 +731,18 @@ std::vector<std::shared_ptr<Tile>> Board::getNeighbourTiles(const Position& pos,
 }
 
 std::vector<std::shared_ptr<Tile>> Board::getAllEnemyTileExceptDragonAndMerchant() const{
-    std::vector<std::shared_ptr<Tile>> neighbours;
-    for(auto& row:tiles){
-        for(auto& tile:row){
-            auto t=tile->getType();
-            if(TypeCategories::isEnemy(t) && t!=Type::DRAGON && t!=Type::MERCHANT){
-                neighbours.emplace_back(tile);
-            }
+    std::vector<std::shared_ptr<Tile>> result;
+    result.reserve(enemyTiles.size());
+    for (const auto& tile : enemyTiles) {
+        if (!tile) continue;
+        auto t = tile->getType();
+        if (TypeCategories::isEnemy(t) && t != Type::DRAGON && t != Type::MERCHANT) {
+            result.emplace_back(tile);
         }
     }
-    return neighbours;
+    return result;
 }
-int Board::calDamage(Tile& atk, Tile& def) {
+int Board::calDamage(const Tile& atk, const Tile& def) {
     int damage;
     if (atk.getType() == Type::PLAYER) {
         auto player=std::dynamic_pointer_cast<PlayerCharacter>(pt->getEntity());
@@ -793,8 +781,9 @@ void Board::attackPc(Tile& et){
     if(!pos.near(pcPos)) return;
     int damage=calDamage(et,*pt);
     auto player=std::dynamic_pointer_cast<PlayerCharacter>(pt->getEntity());
-    player->setHp(-damage);
     auto enemy=std::dynamic_pointer_cast<Enemy>(et.getEntity());
+    if (!player || !enemy) return;
+    player->setHp(-damage);
     enemy->useSpecialAbility(*player);
     dialog+= " and "+toString(enemy->getType())+ " deals "+ std::to_string(damage)+" damage to PC";
 }
@@ -802,10 +791,11 @@ void Board::attackEnemy(Tile& et){
     int damageToEnemy=calDamage(*pt,et);
     auto player=std::dynamic_pointer_cast<PlayerCharacter>(pt->getEntity());
     auto enemy=std::dynamic_pointer_cast<Enemy>(et.getEntity());
+    if (!player || !enemy) return;
     enemy->setHp(-damageToEnemy);
     if(enemy->getType()==Type::PHOENIX && enemy->getHp()<=0) {
         auto phonix=std::dynamic_pointer_cast<Phoenix>(enemy);
-        if(!phonix->isRisen()) phonix->useSpecialAbility();
+        if(phonix && !phonix->isRisen()) phonix->useSpecialAbility(*player);
     }
     dialog="PC deals " + std::to_string(damageToEnemy) +
             " damage to " + toChar(et.getType()) + " (" +

@@ -6,11 +6,11 @@
 #include <fstream>
 #include <string>
 #include <random>
-#include "Enum.cc"
-#include "Player.cc"
-#include "Item.cc"
-#include "Position.cc"
-#include "Enemy.cc"
+#include "Enum.h"
+#include "Player.h"
+#include "Item.h"
+#include "Position.h"
+#include "Enemy.h"
 
 const int BOARD_WIDTH = 79;
 const int BOARD_HEIGHT = 25;
@@ -25,15 +25,14 @@ private:
     Position pos;
     std::shared_ptr<Entity> entity; // Base class for Enemy, PlayerCharacter, Item
     Type t;
-    std::weak_ptr<Board> board;
 public:
-    Tile(Position pos, std::shared_ptr<Entity> const& ent, Type type, std::shared_ptr<Board> const& b);
+    Tile(Position pos, std::shared_ptr<Entity> const& ent, Type type);
     Position getPosition() const;
     void setPosition(const Position& newPos);
     bool isPickable();
     int getX() const;
     int getY() const;
-    bool near(const Position& other);
+    bool near(const Position& other) const;
     Type getType() const;
     void setType(Type type);
     void setEntity(std::shared_ptr<Entity> newEntity);
@@ -56,11 +55,6 @@ private:
     int maxFloorId;
 
     // Private helper methods
-    template<typename T>
-    std::shared_ptr<T> safeCast(const EntityPtr& entity) const;
-    void handleItemProtection(TilePtr tile, const Position& pos);
-    int calculateDamage(const Tile &attacker, const Tile &defender);
-    void handleItemPickup(const std::shared_ptr<Tile> &tile);
     void loadFromFile(int floorId);
 
 
@@ -82,7 +76,7 @@ public:
     bool isCompassPickedUp() const;
     int getMaxFloorId() const;
     bool isHostile(const Tile& t) const;
-    bool getSetSuit()const;
+    bool getSetSuit() const;
     // Game Logic Processing
     void updateEnemies();
     void attackPc(Tile& et);
@@ -107,7 +101,7 @@ public:
     std::shared_ptr<Entity> createEntity(Type type, const Position& pos);
 
     // Data Query
-    bool isValidMove(Tile& t, Position& pos) const;
+    bool isValidMove(const Tile& t, const Position& pos) const;
     std::vector<std::shared_ptr<Tile>> getNeighbourTiles(const Position& pos,Type t) const;
     std::shared_ptr<Tile> getTile(const Position& pos) const;
     std::vector<std::shared_ptr<Tile>> getFloorTile() const;
@@ -121,7 +115,7 @@ public:
     void assignItemToDragon(const Position& pos, const std::shared_ptr<Item>& it);
 
     // Damage Calculation
-    int calDamage(Tile& player, Tile& enemy);
+    int calDamage(const Tile& player, const Tile& enemy);
 
     // Special Items Placement
     std::shared_ptr<Tile> placeDragonHoard(const std::shared_ptr<Item>& gold, const Position& pos);
@@ -133,4 +127,45 @@ public:
 
     // File Operations
 };
+
+class LoadException : public std::runtime_error {
+public:
+    explicit LoadException(const std::string& message)
+        : std::runtime_error(message) {}
+};
+
+template<typename Func>
+void Board::loadBoard(int floorId, std::string& filename, Func processChar) {
+    std::ifstream fs(filename);
+    if (!fs.is_open()) {
+        throw LoadException("Failed to open file: " + filename);
+    }
+
+    // Skip lines that do not belong to the current floor
+    std::string line;
+    int skipLines = floorId * BOARD_HEIGHT;
+    for (int i = 0; i < skipLines && std::getline(fs, line); ++i);
+
+    // Load the current floor
+    int y = 0;
+    enemyTiles.clear();
+    while (std::getline(fs, line) && y < BOARD_HEIGHT) {
+        if (static_cast<int>(line.length()) < BOARD_WIDTH) {
+            throw LoadException("Error: Line " + std::to_string(y) +
+                                     " has fewer columns than expected (" +
+                                     std::to_string(BOARD_WIDTH) + ").");
+        }
+
+        for (int x = 0; x < BOARD_WIDTH; ++x) {
+            tiles[y][x] = std::make_shared<Tile>(
+                Position(x, y), nullptr, processChar(line[x]));
+        }
+        ++y;
+    }
+
+    if (y != BOARD_HEIGHT) {
+        throw LoadException("Error: File contains fewer rows than expected (" +
+                                 std::to_string(BOARD_HEIGHT) + ").");
+    }
+}
 #endif

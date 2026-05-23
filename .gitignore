@@ -1,2 +1,4 @@
-*.bbl\n*.gz\n*.log\n*.aux
-desgin/
+src/*.o
+src/*.d
+src/cc3k
+src/cc3k+

@@ -8,14 +8,12 @@
 #include <cstdlib>
 #include <ctime>
 #include "Board.h"
-#include "Board.cc"
-#include "Enum.cc"
-#include "Enemy.cc"
+#include "Enum.h"
+#include "Enemy.h"
 
 class Game {
     std::shared_ptr<Board> board;
     GameState state;
-    int seed;
     std::string filename;
     std::string dialog;
     bool wealtherEnabled;

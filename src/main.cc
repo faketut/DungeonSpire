@@ -1,9 +1,8 @@
 #include <unistd.h>
 #include <string>
 #include "Game.h"
-#include "Game.cc"
-#include "Item.cc"
-#include "EffectManager.cc"
+#include "Item.h"
+#include "EffectManager.h"
 
 
 int main(int argc, char* argv[]) {

@@ -3,8 +3,8 @@
 
 #include <string>
 #include <memory>
-#include "Player.cc"
-#include "Item.cc"
+#include "Player.h"
+#include "Item.h"
 
 class Quest {
 protected:
@@ -22,10 +22,9 @@ public:
 class KillQuest : public Quest {
     Type targetType;
     int requiredCount;
-    int currentCount;
 public:
     KillQuest(Type target, int count, const std::string& desc)
-        : Quest(desc), targetType(target), requiredCount(count), currentCount(0) {}
+        : Quest(desc), targetType(target), requiredCount(count) {}
     
     void checkCompletion(std::shared_ptr<PlayerCharacter> pc) override {
         if (pc->getKillCount(targetType) >= requiredCount) {

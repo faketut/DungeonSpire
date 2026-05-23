@@ -7,7 +7,7 @@
 #include <string>
 #include "Game.h"
 #include "Quest.h"
-#include "QuestManager.cc"
+#include "QuestManager.h"
 
 void Game::processCommand() {
     std::cout << "Enter a command: ";
@@ -41,10 +41,10 @@ void Game::processCommand() {
         auto dir = toDirection(dirStr);
         auto pos = board->convertDirection(*pcTile, dir);
         auto enemyTile = board->getTile(pos);
-        if (enemyTile&& TypeCategories::isEnemy(enemyTile->getType())) {  
-            auto enemy=std::dynamic_pointer_cast<Enemy>(enemyTile->getEntity());
-            board->attackEnemy(*enemyTile);
-        } 
+        if (enemyTile && TypeCategories::isEnemy(enemyTile->getType())) {
+            auto enemy = std::dynamic_pointer_cast<Enemy>(enemyTile->getEntity());
+            if (enemy) board->attackEnemy(*enemyTile);
+        }
     } 
     else {
         std::cout << "Invalid command!" << std::endl;
@@ -60,6 +60,7 @@ void Game::quit() {
 // prompt the player to quit or select a race
 void Game::victory() {
     auto player=std::dynamic_pointer_cast<PlayerCharacter>(board->getPc()->getEntity());
+    if (!player) { state = GameState::QUIT; return; }
     int gold = player->getInfo().find("Gold")->second;
     double score = gold*2;
     if(player->getRace()==Race::HUMAN) score*=1.5; 
@@ -89,6 +90,7 @@ void Game::defeat() {
 bool Game::gameOver() {
     // 游戏结束的逻辑
     auto player=std::dynamic_pointer_cast<PlayerCharacter>(board->getPc()->getEntity());
+    if (!player) return true;
     if (!player->isAlive()) {
         state = GameState::DEFEAT;
         return true;
@@ -101,7 +103,7 @@ bool Game::gameOver() {
     }else
         return false;
 }
-Game::Game(int seed, std::string fn, bool wealtherEnabled, bool questEnabled) : board(nullptr), state(GameState::RESTART), seed(seed),filename(fn),wealtherEnabled(wealtherEnabled), questEnabled(questEnabled) {
+Game::Game(int seed, std::string fn, bool wealtherEnabled, bool questEnabled) : board(nullptr), state(GameState::RESTART), filename(fn),wealtherEnabled(wealtherEnabled), questEnabled(questEnabled) {
     srand(seed);
     if (questEnabled) {
         initializeQuests();
