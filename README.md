@@ -87,11 +87,11 @@ CI runs seven jobs on every push: `build-and-test` under both `g++` and `clang++
 ## Project Layout
 
 ```
-src/         Game source (Board.cc split into Board{Combat,Enemies,Load,Player,Render}.cc + Game, Player, Enemy, Item, ...)
+src/         Game source (Board.cc split into Board{Combat,Enemies,Load,Player}.cc + Game, Player, Enemy, Item, AnsiRenderer, ...)
 src/third_party/   Vendored single-header libraries (nlohmann/json)
 tests/       doctest-based unit tests
 tests/third_party/ Vendored doctest single header
-data/        Data-driven configs (enemies.json)
+data/        Data-driven configs (enemies.json, items.json, races.json, floor.json)
 files/       Hand-authored floor layouts
 design/      Original design docs, UML, plans (historical)
 ```
@@ -102,7 +102,8 @@ Key modules:
 - [src/Player.h](src/Player.h), [src/Enemy.h](src/Enemy.h), [src/Item.h](src/Item.h) — entity hierarchy
 - [src/EffectManager.h](src/EffectManager.h), [src/QuestManager.h](src/QuestManager.h) — Meyers singleton managers
 - [src/EventBus.h](src/EventBus.h) — header-only type-erased pub/sub; publishers wired for `FloorChanged`, `EnemyDied`, `ItemPickedUp`
-- [src/EnemyStats.h](src/EnemyStats.h) — enemy stat registry (defaults overridable via [data/enemies.json](data/enemies.json))
+- [src/Renderer.h](src/Renderer.h) / [src/AnsiRenderer.h](src/AnsiRenderer.h) — `IRenderer` abstraction + default ANSI terminal renderer
+- [src/EnemyStats.h](src/EnemyStats.h), [src/ItemStats.h](src/ItemStats.h), [src/RaceStats.h](src/RaceStats.h), [src/FloorStats.h](src/FloorStats.h) — stat registries overridable via the matching JSON in [data/](data/)
 - [src/SaveGame.h](src/SaveGame.h) / [src/SaveGame.cc](src/SaveGame.cc) — JSON v1 save format
 - [src/PRNG.h](src/PRNG.h) — seedable `std::mt19937` wrapper
 
