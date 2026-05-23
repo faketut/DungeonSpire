@@ -70,13 +70,10 @@ bool Board::isHostile(const Tile& t) const{
 
 // updateEnemyState enemy state(attack/move)
 void Board::updateEnemies() {
-    //std::cout << "Enemy size is " <<enemyTiles.size()<<std::endl;
-
     for (auto& enemyTile : enemyTiles) {
         if(!enemyTile) {
             continue;
         }
-        //std::cout<<toString(enemyTile->getType())<<"\t";
         auto enemy = std::dynamic_pointer_cast<Enemy>(enemyTile->getEntity());
         if(!enemy) {
             continue;}
@@ -87,7 +84,6 @@ void Board::updateEnemies() {
         } else {
             moveEnemy(*enemyTile);
         }
-        //std::cout<<std::endl;
     }
 }
 void Board::setTile(const Position& pos,Type t,std::shared_ptr<Entity> entity){
@@ -115,7 +111,7 @@ std::shared_ptr<Tile> Board::getRandomTile(const std::vector<std::shared_ptr<Til
     }
 
     // 在指定范围内随机选择一个索引
-    size_t index = start + rand() % (end - start);
+    size_t index = start + PRNG::randInt(static_cast<int>(end - start));
     return tiles[index];
 }
 
@@ -159,9 +155,9 @@ void Board::moveEnemy(Tile& t){
     if (t.getType() == Type::DRAGON) return;
     // ~33% chance the enemy acts on this tick.
     constexpr int ENEMY_ACT_DENOM = 3;
-    if (rand() % ENEMY_ACT_DENOM) return;
+    if (PRNG::randInt(ENEMY_ACT_DENOM)) return;
     constexpr int DIRECTION_COUNT = 8;
-    int random = rand() % DIRECTION_COUNT;
+    int random = PRNG::randInt(DIRECTION_COUNT);
     Direction dir;
     switch (random) {
         case 0: dir=Direction::no;break;
@@ -299,7 +295,7 @@ void Board::initFloor() {
 
         // generate barrier suit
         if(!getSetSuit()){
-            if(floorId==4 || rand()%2){
+            if(floorId==4 || PRNG::randInt(2)){
                 tile = getRandomTile(floorTiles);
                 auto pos=tile->getPosition();
                 if (tile) {
@@ -626,7 +622,7 @@ void Board::printBoard() const {
             Position pos(x, y);
             auto dist=pos.distanceTo(pcPos);
             if (dist <= visibility) {
-                if(dist==visibility && rand()%2) std::cout<<" ";
+                if(dist==visibility && PRNG::randInt(2)) std::cout<<" ";
                 else if (pcPos == pos) 
                     std::cout << "\033[34m" << '@';
                 else {
@@ -765,7 +761,7 @@ int Board::calDamage(const Tile& atk, const Tile& def) {
             return 0;
         }
         // Enemies have a 50% chance not to hit PC
-        if (rand() % 2) { return 0; }
+        if (PRNG::randInt(2)) { return 0; }
         damage = static_cast<int>(std::ceil(
             (100.0 / (100 + player->getDef())) 
             * enemy->getAtk()));

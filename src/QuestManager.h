@@ -1,5 +1,5 @@
-#ifndef QUEST_MANAGER_CC
-#define QUEST_MANAGER_CC
+#ifndef QUEST_MANAGER_H
+#define QUEST_MANAGER_H
 
 #include <memory>
 #include <vector>
@@ -7,17 +7,15 @@
 
 class QuestManager {
 private:
-    static std::shared_ptr<QuestManager> instance;
-    static std::once_flag initFlag;
     std::vector<std::unique_ptr<Quest>> activeQuests;
     
     QuestManager() = default;
 public:
-    static std::shared_ptr<QuestManager> getInstance() {
-        std::call_once(initFlag, [](){
-            instance.reset(new QuestManager());
-        });
-        return instance;
+    QuestManager(const QuestManager&) = delete;
+    QuestManager& operator=(const QuestManager&) = delete;
+    static QuestManager* getInstance() {
+        static QuestManager inst;
+        return &inst;
     }
     
     void addQuest(std::unique_ptr<Quest> quest) {
@@ -50,6 +48,4 @@ public:
         return activeQuests;
     }
 };
-inline std::shared_ptr<QuestManager> QuestManager::instance = nullptr;
-inline std::once_flag QuestManager::initFlag;
 #endif 

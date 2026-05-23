@@ -1,5 +1,5 @@
-#ifndef POSITION_CC
-#define POSITION_CC
+#ifndef POSITION_H
+#define POSITION_H
 #include <algorithm>
 class Position{
 protected:

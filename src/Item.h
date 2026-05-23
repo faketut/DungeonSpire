@@ -1,16 +1,14 @@
-#ifndef ITEM_CC
-#define ITEM_CC
+#ifndef ITEM_H
+#define ITEM_H
 #include <iostream>
 #include <string>
 #include <vector>
 #include <memory>
-#include <cstdlib>
-#include <ctime>
 #include <algorithm>
-#include <mutex>
 #include "Enum.h"
 #include "EffectManager.h"
 #include "Player.h"
+#include "PRNG.h"
 
 class Item :public Entity{
 protected:
@@ -134,7 +132,7 @@ public:
 
     // 1/6 chance to spawn a particular potion
     static std::shared_ptr<Potion> generatePotion() {
-        int i = rand() % POTION_KINDS;
+        int i = PRNG::randInt(POTION_KINDS);
         switch (i) {
             case 0: return std::make_shared<RestoreHealthPotion>();
             case 1: return std::make_shared<PoisonHealthPotion>();
@@ -158,7 +156,7 @@ public:
     }
     // 5/8 chance of normal, 1/8 dragon hoard, 1/4 small hoard
     static std::shared_ptr<Gold> generateGold() {
-        int i = rand() % GOLD_ROLL_RANGE;
+        int i = PRNG::randInt(GOLD_ROLL_RANGE);
         switch (i)
         {
             case 0: return std::make_shared<NormalGoldPile>();
@@ -194,6 +192,4 @@ public:
     }
 
 };
-inline std::shared_ptr<EffectManager> EffectManager::instance = nullptr;
-inline std::once_flag EffectManager::initFlag;
 #endif

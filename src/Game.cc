@@ -104,7 +104,7 @@ bool Game::gameOver() {
         return false;
 }
 Game::Game(int seed, std::string fn, bool wealtherEnabled, bool questEnabled) : board(nullptr), state(GameState::RESTART), filename(fn),wealtherEnabled(wealtherEnabled), questEnabled(questEnabled) {
-    srand(seed);
+    PRNG::seed(static_cast<std::uint32_t>(seed));
     if (questEnabled) {
         initializeQuests();
     }
@@ -206,7 +206,7 @@ void Game::run() {
                     std::cout<<loopCounter<<std::endl;
                     if(loopCounter%5==0) {
                         auto weatherManager=EffectManager::getInstance();
-                        if(rand()%2 || weatherManager->getWeatherEffectsCnt()>1) EffectManager::getInstance()->clearWealtherEffects();
+                        if(PRNG::randInt(2) || weatherManager->getWeatherEffectsCnt()>1) EffectManager::getInstance()->clearWealtherEffects();
                         auto weather = generateWeather();
                         auto player=std::dynamic_pointer_cast<PlayerCharacter>(board->getPc()->getEntity());
                         weather->apply(player);

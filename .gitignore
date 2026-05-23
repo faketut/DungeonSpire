@@ -1,4 +1,17 @@
+# Build artifacts
 src/*.o
 src/*.d
 src/cc3k
 src/cc3k+
+src/cc3k.zip
+tests/run_tests
+
+# LaTeX build outputs
+design/out/
+*.aux
+*.log
+*.synctex.gz
+
+# OS / editor cruft
+.DS_Store
+*.swp

@@ -11,6 +11,7 @@
 #include "Item.h"
 #include "Position.h"
 #include "Enemy.h"
+#include "PRNG.h"
 
 const int BOARD_WIDTH = 79;
 const int BOARD_HEIGHT = 25;
@@ -41,7 +42,7 @@ public:
 using EntityPtr = std::shared_ptr<Entity>;
 using TilePtr = std::shared_ptr<Tile>;
 using TileGrid = std::vector<std::vector<TilePtr>>;
-class Board : public std::enable_shared_from_this<Board>{
+class Board {
 private:
     std::vector<std::vector<std::shared_ptr<Tile>>> tiles;
     std::vector<std::shared_ptr<Tile>> enemyTiles;

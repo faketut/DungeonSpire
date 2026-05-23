@@ -1,9 +1,9 @@
-#ifndef EFFECT_MANAGER_CC
-#define EFFECT_MANAGER_CC
+#ifndef EFFECT_MANAGER_H
+#define EFFECT_MANAGER_H
 #include <memory>
 #include <algorithm>
-#include <mutex>
 #include "Player.h"
+#include "PRNG.h"
 class Effect {
 public:
     virtual void apply(std::shared_ptr<PlayerCharacter> pc) = 0;
@@ -93,7 +93,7 @@ public:
 };
 
 inline std::unique_ptr<Effect> generateWeather() {
-    int random=rand()%3;
+    int random=PRNG::randInt(3);
     switch(random) {
         case 0: return std::make_unique<RainEffect>();
         case 1: return std::make_unique<StormEffect>();
@@ -104,8 +104,6 @@ inline std::unique_ptr<Effect> generateWeather() {
 // EffectManager（单例）
 class EffectManager {
 private:
-    static std::shared_ptr<EffectManager> instance;
-    static std::once_flag initFlag;
     std::vector<std::unique_ptr<Effect>> effects;
     std::vector<std::unique_ptr<Effect>> weatherEffects;
 
@@ -134,19 +132,16 @@ private:
         };
 
         // 使用随机数选择提示
-        return adventureTips[std::rand() % adventureTips.size()];
+        return adventureTips[PRNG::randInt(static_cast<int>(adventureTips.size()))];
     }
 public:
-    // 禁用拷贝构造和赋值操作
     EffectManager(const EffectManager&) = delete;
     EffectManager& operator=(const EffectManager&) = delete;
     int getWeatherEffectsCnt() {return weatherEffects.size();}
     // 提供全局访问点
-    static std::shared_ptr<EffectManager> getInstance() {
-        std::call_once(initFlag, [](){
-            instance.reset(new EffectManager());
-        });
-        return instance;
+    static EffectManager* getInstance() {
+        static EffectManager inst;
+        return &inst;
     }
     void addWeatherEffect(std::unique_ptr<Effect> effect) {
         weatherEffects.push_back(std::move(effect));

@@ -1,10 +1,8 @@
-#ifndef ENEMY_CC
-#define ENEMY_CC
+#ifndef ENEMY_H
+#define ENEMY_H
 #include <iostream>
 #include <string>
 #include <vector>
-#include <cstdlib>
-#include <ctime>
 #include <memory>
 #include <cmath>
 #include <map>
@@ -13,6 +11,7 @@
 #include "Entity.h"
 #include "Item.h"
 #include "Position.h"
+#include "PRNG.h"
 
 class Enemy:public Entity{
 protected:
@@ -146,7 +145,7 @@ class EnemyGenerator {
 public:
     // WEREWOLF: 2/9 VAMPIRE: 3/18 GOBLIN: 5/18 TROLL: 1/9 PHOENIX: 1/9 MERCHANT: 1/9
     static std::shared_ptr<Enemy> generateEnemy() {
-        int i = rand()%18;
+        int i = PRNG::randInt(18);
         // 设置随机种子
         if (i < 4) {          // 2/9 (4/18): 狼人
             return std::make_shared<Werewolf>();

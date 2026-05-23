@@ -1,5 +1,5 @@
-#ifndef PLAYER_CC
-#define PLAYER_CC
+#ifndef PLAYER_H
+#define PLAYER_H
 #include <iostream>
 #include <string>
 #include <map>
