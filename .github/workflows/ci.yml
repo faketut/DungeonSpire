@@ -10,6 +10,7 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         compiler: [g++, clang++]
     steps:
@@ -32,3 +33,98 @@ jobs:
         working-directory: src
         run: |
           printf "h\nq\n" | valgrind --error-exitcode=1 --leak-check=full ./cc3k
+
+  cmake-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build
+      - name: Build
+        run: cmake --build build -j
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: Smoke run
+        working-directory: build/src
+        run: printf "h\nq\n" | ./cc3k --seed 42
+
+  sanitizers:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (ASan + UBSan)
+        run: |
+          CXX=clang++ cmake -S . -B build-san \
+            -DENABLE_ASAN=ON -DENABLE_UBSAN=ON
+      - name: Build
+        run: cmake --build build-san -j
+      - name: Run tests under sanitizers
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ctest --test-dir build-san --output-on-failure
+      - name: Smoke run under sanitizers
+        working-directory: build-san/src
+        env:
+          ASAN_OPTIONS: detect_leaks=1:abort_on_error=1
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: printf "h\nq\n" | ./cc3k --seed 42
+
+  clang-tidy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang-tidy
+        run: sudo apt-get update && sudo apt-get install -y clang-tidy
+      - name: Generate compile_commands.json
+        run: cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+      - name: Run clang-tidy on src/
+        run: |
+          # Informational — does not fail the build on legacy warnings (yet).
+          # Re-tighten by removing '|| true' once the warning count is zero.
+          clang-tidy -p build src/*.cc || true
+
+  cppcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+      - name: Run cppcheck
+        run: |
+          cppcheck --enable=warning,performance,portability \
+                   --suppress=missingIncludeSystem \
+                   --inline-suppr \
+                   --error-exitcode=0 \
+                   --std=c++20 \
+                   src/
+
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install lcov
+        run: sudo apt-get update && sudo apt-get install -y lcov
+      - name: Configure (coverage)
+        run: cmake -S . -B build-cov -DENABLE_COVERAGE=ON
+      - name: Build
+        run: cmake --build build-cov -j
+      - name: Run tests
+        run: ctest --test-dir build-cov --output-on-failure
+      - name: Capture coverage
+        run: |
+          lcov --capture --directory build-cov --output-file coverage.info \
+               --ignore-errors mismatch,gcov,unused,empty,inconsistent \
+               --no-external --base-directory "$PWD"
+          lcov --remove coverage.info '*/tests/*' '*/third_party/*' \
+               --output-file coverage.info \
+               --ignore-errors unused
+          lcov --list coverage.info
+          genhtml coverage.info --output-directory coverage-html \
+                  --ignore-errors inconsistent
+      - name: Upload coverage HTML
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-html
+          path: coverage-html
+          retention-days: 14

@@ -1,0 +1,18 @@
+# Pragmatic clang-tidy config for DungeonSpire.
+# Starts with low-noise checks; expand as the codebase modernises.
+Checks: >
+  bugprone-*,
+  performance-*,
+  modernize-use-override,
+  modernize-use-nullptr,
+  modernize-use-equals-default,
+  modernize-use-equals-delete,
+  readability-redundant-control-flow,
+  readability-misleading-indentation,
+  -bugprone-easily-swappable-parameters,
+  -bugprone-narrowing-conversions,
+  -bugprone-branch-clone,
+  -performance-avoid-endl
+WarningsAsErrors: ''
+HeaderFilterRegex: '^.*src/.*\.h$'
+FormatStyle: file
