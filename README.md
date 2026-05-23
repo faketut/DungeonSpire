@@ -26,23 +26,35 @@
 - GNU `make`
 
 ### Compilation
+
+Two equivalent options — pick whichever fits your workflow:
+
 ```bash
+# Option A: classic Makefile
 git clone https://github.com/faketut/DungeonSpire.git
-cd DungeonSpire/src
-make
+cd DungeonSpire/src && make
+
+# Option B: CMake (out-of-tree; required for sanitizers + coverage)
+git clone https://github.com/faketut/DungeonSpire.git
+cd DungeonSpire
+cmake -S . -B build && cmake --build build -j
+# Optional toggles: -DENABLE_ASAN=ON -DENABLE_UBSAN=ON -DENABLE_COVERAGE=ON
 ```
 
 ### Running
 ```bash
-./cc3k [-enableWeather] [-enableQuest] [-file <floorfilename>] [-seed <n>]
+./cc3k [--enableWeather] [--enableQuest] [--file <path>] [--seed <n>]
+       [--save <path>] [--load <path>]
 ```
 
 | Flag | Description |
 |------|-------------|
-| `-enableWeather`        | Enable the dynamic weather system |
-| `-enableQuest`          | Enable the side-quest system |
-| `-file <filename>`      | Load a specific floor layout from file |
-| `-seed <n>`             | Seed the PRNG for reproducible runs |
+| `--enableWeather`  | Enable the dynamic weather system |
+| `--enableQuest`    | Enable the side-quest system |
+| `--file <path>`    | Load a specific floor layout from file |
+| `--seed <n>`       | Seed the PRNG for reproducible runs |
+| `--save <path>`    | Write a JSON save file on clean quit (`q`) |
+| `--load <path>`    | Resume from a JSON save file at startup; loaded settings (seed, file, weather, quest) override the corresponding CLI flags |
 
 ---
 
@@ -68,30 +80,37 @@ cd tests
 make run
 ```
 
-CI builds the game with both `g++` and `clang++`, runs the test suite, then smoke-runs the game under Valgrind — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
+CI runs seven jobs on every push: `build-and-test` under both `g++` and `clang++`, a CMake build, an ASan+UBSan sanitizer run, `clang-tidy`, `cppcheck`, and a coverage upload — see [.github/workflows/ci.yml](.github/workflows/ci.yml).
 
 ---
 
 ## Project Layout
 
 ```
-src/        Game source (header-only classes + 3 .cc translation units)
-tests/      doctest-based unit tests
-design/     Original design docs, UML, plans (historical)
+src/         Game source (Board.cc split into Board{Combat,Enemies,Load,Player,Render}.cc + Game, Player, Enemy, Item, ...)
+src/third_party/   Vendored single-header libraries (nlohmann/json)
+tests/       doctest-based unit tests
+tests/third_party/ Vendored doctest single header
+data/        Data-driven configs (enemies.json)
+files/       Hand-authored floor layouts
+design/      Original design docs, UML, plans (historical)
 ```
 
 Key modules:
-- [src/Board.h](src/Board.h) / [src/Board.cc](src/Board.cc) — map, enemies, combat dispatch
-- [src/Game.h](src/Game.h) / [src/Game.cc](src/Game.cc) — main loop, command parsing
+- [src/Board.h](src/Board.h) + `src/Board*.cc` — map, enemies, combat dispatch
+- [src/Game.h](src/Game.h) / [src/Game.cc](src/Game.cc) — main loop, command parsing, save/load orchestration
 - [src/Player.h](src/Player.h), [src/Enemy.h](src/Enemy.h), [src/Item.h](src/Item.h) — entity hierarchy
 - [src/EffectManager.h](src/EffectManager.h), [src/QuestManager.h](src/QuestManager.h) — Meyers singleton managers
+- [src/EventBus.h](src/EventBus.h) — header-only type-erased pub/sub; publishers wired for `FloorChanged`, `EnemyDied`, `ItemPickedUp`
+- [src/EnemyStats.h](src/EnemyStats.h) — enemy stat registry (defaults overridable via [data/enemies.json](data/enemies.json))
+- [src/SaveGame.h](src/SaveGame.h) / [src/SaveGame.cc](src/SaveGame.cc) — JSON v1 save format
 - [src/PRNG.h](src/PRNG.h) — seedable `std::mt19937` wrapper
 
 ---
 
 ## Development Notes
 
-- Memory-safety verified via Valgrind (run in CI).
+- Builds under `-Wall -Wextra -Wsuggest-override -Werror=vla` and is clean under ASan + UBSan.
 - Code style: see [.clang-format](.clang-format). Run `clang-format -i src/*.{h,cc}` before submitting changes.
 - Editor settings: see [.editorconfig](.editorconfig).
 
