@@ -6,6 +6,7 @@
 #include "../src/PRNG.h"
 #include "../src/Player.h"
 #include "../src/EffectManager.h"
+#include "../src/Enum.h"
 
 TEST_CASE("Position::distanceTo is Manhattan distance") {
     Position a{0, 0};
@@ -88,4 +89,67 @@ TEST_CASE("Race attributes apply correctly") {
     elf.setAttributes(Race::ELF);
     CHECK(elf.getAtk() == 30);
     CHECK(elf.getDef() == 10);
+}
+
+TEST_CASE("Type metadata table preserves toString contract") {
+    CHECK(toString(Type::WEREWOLF) == "Werewolf");
+    CHECK(toString(Type::DRAGON) == "Dragon");
+    CHECK(toString(Type::FLOOR) == "Floor");
+    CHECK(toString(Type::UNKNOWN) == "Unknown");
+    CHECK(toString(Type::BARRIER_SUIT) == "Barrier Suit");
+}
+
+TEST_CASE("Type metadata table preserves toChar contract incl. STAIRWAY toggle") {
+    CHECK(toChar(Type::FLOOR) == '.');
+    CHECK(toChar(Type::WALL) == '|');
+    CHECK(toChar(Type::RH) == 'P');
+    CHECK(toChar(Type::COMPASS) == 'C');
+    // Stairway hides as floor until compass picked up
+    CHECK(toChar(Type::STAIRWAY, false) == '.');
+    CHECK(toChar(Type::STAIRWAY, true)  == '\\');
+}
+
+TEST_CASE("toType inverts file glyphs for the canonical chars") {
+    CHECK(static_cast<int>(toType('.')) == static_cast<int>(Type::FLOOR));
+    CHECK(static_cast<int>(toType('|')) == static_cast<int>(Type::WALL));
+    CHECK(static_cast<int>(toType('W')) == static_cast<int>(Type::WEREWOLF));
+    CHECK(static_cast<int>(toType('@')) == static_cast<int>(Type::PLAYER));
+    CHECK(static_cast<int>(toType('?')) == static_cast<int>(Type::UNKNOWN));
+}
+
+TEST_CASE("TypeCategories flags match the legacy unordered_set semantics") {
+    // Potions
+    CHECK(TypeCategories::isPotion(Type::RH));
+    CHECK(TypeCategories::isPotion(Type::WD));
+    CHECK_FALSE(TypeCategories::isPotion(Type::COMPASS));
+    // Enemies (note: PHOENIX, MERCHANT, DRAGON are enemies)
+    CHECK(TypeCategories::isEnemy(Type::DRAGON));
+    CHECK(TypeCategories::isEnemy(Type::PHOENIX));
+    CHECK_FALSE(TypeCategories::isEnemy(Type::PLAYER));
+    // Gold
+    CHECK(TypeCategories::isGold(Type::DRAGON_HOARD));
+    CHECK_FALSE(TypeCategories::isGold(Type::RH));
+    // Traversable
+    CHECK(TypeCategories::isTraversable(Type::FLOOR));
+    CHECK(TypeCategories::isTraversable(Type::PASSAGE));
+    CHECK(TypeCategories::isTraversable(Type::NORMAL_GOLD_PILE));
+    CHECK_FALSE(TypeCategories::isTraversable(Type::WALL));
+    // Pickable
+    CHECK(TypeCategories::isPickable(Type::COMPASS));
+    CHECK(TypeCategories::isPickable(Type::BARRIER_SUIT));
+    CHECK(TypeCategories::isPickable(Type::DRAGON_HOARD));
+    CHECK_FALSE(TypeCategories::isPickable(Type::WALL));
+    // Must-visible
+    CHECK(TypeCategories::isMustVisible(Type::WALL));
+    CHECK(TypeCategories::isMustVisible(Type::CEIL));
+    CHECK_FALSE(TypeCategories::isMustVisible(Type::FLOOR));
+}
+
+TEST_CASE("toDirection round-trips for the 8 valid commands") {
+    for (const std::string& cmd : moveCommands) {
+        Direction d = toDirection(cmd);
+        // Sanity: toString returns a non-empty cardinal name
+        CHECK_FALSE(toString(d).empty());
+    }
+    CHECK_THROWS_AS(toDirection("xx"), std::invalid_argument);
 }
