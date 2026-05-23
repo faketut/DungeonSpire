@@ -1,9 +1,17 @@
 {
-  "_comment": "Item stat table. Loaded by ItemStats registry. Keys for gold are lowercase enum names. Defaults mirror the original hardcoded values.",
+  "_comment": "Item stat table. Loaded by ItemStats registry. Keys for gold/potions are lowercase enum names. Defaults mirror the original hardcoded values.",
   "gold": {
     "normal_gold_pile": 1,
     "small_hoard":      2,
     "merchant_hoard":   4,
     "dragon_hoard":     6
+  },
+  "potions": {
+    "rh": 5,
+    "ph": 5,
+    "ba": 5,
+    "wa": 5,
+    "bd": 5,
+    "wd": 5
   }
 }

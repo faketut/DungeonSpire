@@ -2,6 +2,7 @@
 #define EFFECT_MANAGER_H
 #include <memory>
 #include <algorithm>
+#include "ItemStats.h"
 #include "Player.h"
 #include "PRNG.h"
 class Effect {
@@ -15,43 +16,44 @@ public:
 // BoostAtk效果（临时）
 class BoostAtkEffect : public Effect {
 public:
-    void apply(std::shared_ptr<PlayerCharacter> pc) override {pc->setAtk(5);}
-    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setAtk(-5);}
+    void apply(std::shared_ptr<PlayerCharacter> pc) override {pc->setAtk( ItemStats::getInstance()->getPotionDelta(Type::BA));}
+    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setAtk(-ItemStats::getInstance()->getPotionDelta(Type::BA));}
     bool isTemporary() const override { return true; }
 };
 class WoundAtkEffect : public Effect {
 public:
-    void apply(std::shared_ptr<PlayerCharacter> pc) override {pc->setAtk(-5);}
-    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setAtk(5);}
+    void apply(std::shared_ptr<PlayerCharacter> pc) override {pc->setAtk(-ItemStats::getInstance()->getPotionDelta(Type::WA));}
+    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setAtk( ItemStats::getInstance()->getPotionDelta(Type::WA));}
     bool isTemporary() const override { return true; }
 };
 class BoostDefEffect : public Effect {
 public:
-    void apply(std::shared_ptr<PlayerCharacter> pc) override {pc->setDef(5);}
-    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setDef(-5);}
+    void apply(std::shared_ptr<PlayerCharacter> pc) override {pc->setDef( ItemStats::getInstance()->getPotionDelta(Type::BD));}
+    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setDef(-ItemStats::getInstance()->getPotionDelta(Type::BD));}
     bool isTemporary() const override { return true; }
 };
 class WoundDefEffect : public Effect {
 public:
-    void apply(std::shared_ptr<PlayerCharacter> pc) override {pc->setDef(-5);}
-    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setDef(5);}
+    void apply(std::shared_ptr<PlayerCharacter> pc) override {pc->setDef(-ItemStats::getInstance()->getPotionDelta(Type::WD));}
+    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setDef( ItemStats::getInstance()->getPotionDelta(Type::WD));}
     bool isTemporary() const override { return true; }
 };
 class RestoreHealthEffect : public Effect {
 public:
-    void apply(std::shared_ptr<PlayerCharacter> pc) override {pc->setHp(5);}
-    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setHp(-5);}
+    void apply(std::shared_ptr<PlayerCharacter> pc) override {pc->setHp( ItemStats::getInstance()->getPotionDelta(Type::RH));}
+    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setHp(-ItemStats::getInstance()->getPotionDelta(Type::RH));}
     bool isTemporary() const override { return false; }
 };
 class PoisonHealthEffect : public Effect {
 public:
     void apply(std::shared_ptr<PlayerCharacter> pc) override {
+        const int d = ItemStats::getInstance()->getPotionDelta(Type::PH);
         if(pc->getRace()==Race::ELF)
-            pc->setHp(5);
-        else 
-            pc->setHp(-5);
+            pc->setHp( d);
+        else
+            pc->setHp(-d);
     }
-    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setHp(5);}
+    void remove(std::shared_ptr<PlayerCharacter> pc) override {pc->setHp(ItemStats::getInstance()->getPotionDelta(Type::PH));}
     bool isTemporary() const override { return false; }
 };
 

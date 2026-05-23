@@ -705,3 +705,55 @@ TEST_CASE("ItemGenerator gold instances reflect the live ItemStats registry") {
     CHECK(d->getValue() == reg->getGoldValue(Type::DRAGON_HOARD));
     CHECK(m->getValue() == reg->getGoldValue(Type::MERCHANT_HOARD));
 }
+
+// ---------------------------------------------------------------------------
+// Phase 3.9b — potion deltas data-driven
+// ---------------------------------------------------------------------------
+
+TEST_CASE("ItemStats built-in defaults provide potion deltas of 5") {
+    ItemStats s;
+    CHECK(s.getPotionDelta(Type::RH) == 5);
+    CHECK(s.getPotionDelta(Type::PH) == 5);
+    CHECK(s.getPotionDelta(Type::BA) == 5);
+    CHECK(s.getPotionDelta(Type::WA) == 5);
+    CHECK(s.getPotionDelta(Type::BD) == 5);
+    CHECK(s.getPotionDelta(Type::WD) == 5);
+}
+
+TEST_CASE("ItemStats::loadFromFile overrides potion deltas from JSON") {
+    const std::string path = "tests_tmp_items_potions.json";
+    {
+        std::ofstream o(path);
+        o << R"({"gold":{"normal_gold_pile":1},"potions":{"rh":17,"ba":99}})";
+    }
+    ItemStats s;
+    REQUIRE(s.loadFromFile(path));
+    CHECK(s.getPotionDelta(Type::RH) == 17);
+    CHECK(s.getPotionDelta(Type::BA) == 99);
+    // Loader replaces the whole potions table (same semantics as EnemyStats),
+    // so an unspecified key in the override file is *not* in the new table.
+    CHECK_THROWS_AS(s.getPotionDelta(Type::PH), std::out_of_range);
+    std::remove(path.c_str());
+}
+
+TEST_CASE("BoostAtkEffect uses ItemStats::getPotionDelta") {
+    auto pc = std::make_shared<PlayerCharacter>(Race::HUMAN);
+    const int baseAtk = pc->getAtk();
+    const int delta = ItemStats::getInstance()->getPotionDelta(Type::BA);
+    BoostAtkEffect e;
+    e.apply(pc);
+    CHECK(pc->getAtk() == baseAtk + delta);
+    e.remove(pc);
+    CHECK(pc->getAtk() == baseAtk);
+}
+
+TEST_CASE("RestoreHealthEffect uses ItemStats::getPotionDelta") {
+    auto pc = std::make_shared<PlayerCharacter>(Race::HUMAN);
+    // Wound the player first so heal has room to apply.
+    pc->setHp(-20);
+    const int hpBefore = pc->getHp();
+    const int delta = ItemStats::getInstance()->getPotionDelta(Type::RH);
+    RestoreHealthEffect e;
+    e.apply(pc);
+    CHECK(pc->getHp() == hpBefore + delta);
+}

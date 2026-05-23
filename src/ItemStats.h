@@ -37,19 +37,28 @@ public:
         } catch (const std::exception&) {
             return false;
         }
-        std::unordered_map<Type, int> next;
+        std::unordered_map<Type, int> nextGold;
+        std::unordered_map<Type, int> nextPotions;
         try {
             if (!j.contains("gold") || !j.at("gold").is_object()) return false;
             for (const auto& [key, value] : j.at("gold").items()) {
                 auto t = parseGoldType(key);
                 if (!t.has_value()) continue;
-                next[*t] = value.get<int>();
+                nextGold[*t] = value.get<int>();
+            }
+            if (j.contains("potions") && j.at("potions").is_object()) {
+                for (const auto& [key, value] : j.at("potions").items()) {
+                    auto t = parsePotionType(key);
+                    if (!t.has_value()) continue;
+                    nextPotions[*t] = value.get<int>();
+                }
             }
         } catch (const std::exception&) {
             return false;
         }
-        if (next.empty()) return false;
-        gold_ = std::move(next);
+        if (nextGold.empty()) return false;
+        gold_ = std::move(nextGold);
+        if (!nextPotions.empty()) potions_ = std::move(nextPotions);
         loaded_ = true;
         source_ = path;
         return true;
@@ -60,6 +69,16 @@ public:
         auto it = gold_.find(t);
         if (it == gold_.end()) {
             throw std::out_of_range("ItemStats: no gold entry for requested Type");
+        }
+        return it->second;
+    }
+
+    // Returns the magnitude (always positive) of a potion's stat delta.
+    // Sign is decided by the Effect class (Boost vs Wound, etc.).
+    int getPotionDelta(Type t) const {
+        auto it = potions_.find(t);
+        if (it == potions_.end()) {
+            throw std::out_of_range("ItemStats: no potion entry for requested Type");
         }
         return it->second;
     }
@@ -87,6 +106,12 @@ private:
         gold_[Type::SMALL_HOARD]      = 2;
         gold_[Type::MERCHANT_HOARD]   = 4;
         gold_[Type::DRAGON_HOARD]     = 6;
+        potions_[Type::RH] = 5;
+        potions_[Type::PH] = 5;
+        potions_[Type::BA] = 5;
+        potions_[Type::WA] = 5;
+        potions_[Type::BD] = 5;
+        potions_[Type::WD] = 5;
         source_ = "<built-in defaults>";
     }
 
@@ -98,7 +123,18 @@ private:
         return std::nullopt;
     }
 
+    static std::optional<Type> parsePotionType(const std::string& key) {
+        if (key == "rh") return Type::RH;
+        if (key == "ph") return Type::PH;
+        if (key == "ba") return Type::BA;
+        if (key == "wa") return Type::WA;
+        if (key == "bd") return Type::BD;
+        if (key == "wd") return Type::WD;
+        return std::nullopt;
+    }
+
     std::unordered_map<Type, int> gold_;
+    std::unordered_map<Type, int> potions_;
     bool loaded_ = false;
     std::string source_;
 };
