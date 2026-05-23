@@ -7,6 +7,7 @@
 #include <algorithm>
 #include "Enum.h"
 #include "EffectManager.h"
+#include "ItemStats.h"
 #include "Player.h"
 #include "PRNG.h"
 
@@ -94,23 +95,26 @@ public:
     
 class NormalGoldPile : public Gold {
 public:
-    NormalGoldPile() : Gold(1, Type::NORMAL_GOLD_PILE) {}
+    NormalGoldPile()
+        : Gold(ItemStats::getInstance()->getGoldValue(Type::NORMAL_GOLD_PILE), Type::NORMAL_GOLD_PILE) {}
 };
 
 class SmallHoard : public Gold {
 public:
-    SmallHoard() : Gold(2, Type::SMALL_HOARD) {}
+    SmallHoard()
+        : Gold(ItemStats::getInstance()->getGoldValue(Type::SMALL_HOARD), Type::SMALL_HOARD) {}
 };
 
 class DragonHoard : public Gold {
 public:
-    DragonHoard() 
-        : Gold(6, Type::DRAGON_HOARD,true) {
+    DragonHoard()
+        : Gold(ItemStats::getInstance()->getGoldValue(Type::DRAGON_HOARD), Type::DRAGON_HOARD, true) {
     }
 };
 class MerchantHoard : public Gold {
 public:
-    MerchantHoard():Gold(4,Type::MERCHANT_HOARD,true){}
+    MerchantHoard()
+        : Gold(ItemStats::getInstance()->getGoldValue(Type::MERCHANT_HOARD), Type::MERCHANT_HOARD, true) {}
 };
 // 重新设计MajorItem为普通物品
 class Compass : public Item {

@@ -638,3 +638,70 @@ TEST_CASE("AnsiRenderer::drawHud omits empty quest section when enabled but empt
     r.drawHud(h);
     CHECK(os.str().find("Active Quests") == std::string::npos);
 }
+
+// ---------------------------------------------------------------------------
+// Phase 3.9 — Data-driven content (ItemStats: gold values)
+// ---------------------------------------------------------------------------
+
+#include "../src/ItemStats.h"
+
+TEST_CASE("ItemStats built-in defaults match the historical hardcoded values") {
+    ItemStats s;
+    CHECK(s.getGoldValue(Type::NORMAL_GOLD_PILE) == 1);
+    CHECK(s.getGoldValue(Type::SMALL_HOARD)      == 2);
+    CHECK(s.getGoldValue(Type::MERCHANT_HOARD)   == 4);
+    CHECK(s.getGoldValue(Type::DRAGON_HOARD)     == 6);
+}
+
+TEST_CASE("ItemStats::loadFromFile overrides defaults from JSON") {
+    const std::string path = "tests_tmp_items.json";
+    {
+        std::ofstream o(path);
+        o << R"({"gold":{"normal_gold_pile":9,"small_hoard":7,"dragon_hoard":42}})";
+    }
+    ItemStats s;
+    REQUIRE(s.loadFromFile(path));
+    CHECK(s.isLoaded());
+    CHECK(s.source() == path);
+    CHECK(s.getGoldValue(Type::NORMAL_GOLD_PILE) == 9);
+    CHECK(s.getGoldValue(Type::SMALL_HOARD)      == 7);
+    CHECK(s.getGoldValue(Type::DRAGON_HOARD)     == 42);
+    std::remove(path.c_str());
+}
+
+TEST_CASE("ItemStats::loadFromFile rejects malformed JSON and keeps defaults") {
+    const std::string bad = "tests_tmp_bad_items.json";
+    {
+        std::ofstream o(bad);
+        o << "this is not json";
+    }
+    ItemStats s;
+    CHECK_FALSE(s.loadFromFile(bad));
+    CHECK(s.getGoldValue(Type::DRAGON_HOARD) == 6); // defaults intact
+    std::remove(bad.c_str());
+}
+
+TEST_CASE("ItemStats::loadFromFile rejects missing 'gold' section") {
+    const std::string path = "tests_tmp_no_gold.json";
+    {
+        std::ofstream o(path);
+        o << R"({"weapons":{}})";
+    }
+    ItemStats s;
+    CHECK_FALSE(s.loadFromFile(path));
+    CHECK(s.getGoldValue(Type::NORMAL_GOLD_PILE) == 1);
+    std::remove(path.c_str());
+}
+
+TEST_CASE("ItemGenerator gold instances reflect the live ItemStats registry") {
+    auto n = ItemGenerator::generateGold(Type::NORMAL_GOLD_PILE);
+    auto s = ItemGenerator::generateGold(Type::SMALL_HOARD);
+    auto d = ItemGenerator::generateGold(Type::DRAGON_HOARD);
+    auto m = ItemGenerator::generateGold(Type::MERCHANT_HOARD);
+    REQUIRE(n); REQUIRE(s); REQUIRE(d); REQUIRE(m);
+    auto* reg = ItemStats::getInstance();
+    CHECK(n->getValue() == reg->getGoldValue(Type::NORMAL_GOLD_PILE));
+    CHECK(s->getValue() == reg->getGoldValue(Type::SMALL_HOARD));
+    CHECK(d->getValue() == reg->getGoldValue(Type::DRAGON_HOARD));
+    CHECK(m->getValue() == reg->getGoldValue(Type::MERCHANT_HOARD));
+}
