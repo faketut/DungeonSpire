@@ -21,7 +21,6 @@ protected:
     std::unordered_map<Type, int> killCounts;
     std::unordered_map<Type, int> itemCounts;
 
-    // Constants for default attributes
     static constexpr int DEFAULT_MAX_HP = 140;
     static constexpr int DEFAULT_HP = 140;
     static constexpr int DEFAULT_ATK = 20;

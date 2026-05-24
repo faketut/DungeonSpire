@@ -1,6 +1,6 @@
 # From assignment dump to maintainable game: the DungeonSpire modernization journey
 
-> **TL;DR.** DungeonSpire started life as `cc3k`, a roguelike I wrote for a university OO course in 2018: 3.5k lines of C++ in a single `Board.cc`, no tests, no CI, every gameplay constant hard-coded into the binary. Over a series of small commits I turned it into a vendored-deps, CMake-built, doctest-covered, 7-job-CI, data-driven game with a swappable renderer — without rewriting a single piece of game logic. This is the engineering log: which refactors paid off, which I skipped, and why the project is structured the way it is.
+> **TL;DR.** DungeonSpire started life as `cc3k`, a roguelike I wrote for a university OO course in 2024: 3.5k lines of C++ in a single `Board.cc`, no tests, no CI, every gameplay constant hard-coded into the binary. Over a series of small commits I turned it into a vendored-deps, CMake-built, doctest-covered, 7-job-CI, data-driven game with a swappable renderer — without rewriting a single piece of game logic. This is the engineering log: which refactors paid off, which I skipped, and why the project is structured the way it is.
 
 ## Table of contents
 
@@ -20,7 +20,7 @@
 
 ## 1. The starting point
 
-`cc3k` was a CS246 (UWaterloo) final project. The brief was a Rogue-like with five character races, six potion types, four enemy types, a Dragon-guarded hoard, a five-floor dungeon, FOV-style rendering on a fixed terminal grid. The submission was scored on UML, design rationale, and "does it work" — *not* on maintainability, build system, or tests. The result looks exactly like you would expect from those incentives:
+The brief of `cc3k` was a Rogue-like with five character races, six potion types, four enemy types, a Dragon-guarded hoard, a five-floor dungeon, FOV-style rendering on a fixed terminal grid. The submission was scored on UML, design rationale, and "does it work" — *not* on maintainability, build system, or tests. The result looks exactly like you would expect from those incentives:
 
 - One [src/Board.cc](../src/Board.cc) of ~1100 lines containing map generation, FOV, combat dispatch, item pickup, enemy AI scheduling, and rendering.
 - All gameplay constants (`POTION_CNT = 10`, `GOLD_CNT = 10`, `ENEMY_CNT = 20`, dragon's `hp = 150`, human's `maxHp = 140`, every potion's `±5`, every gold pile's value) embedded as `const int` globals or magic numbers in switches.

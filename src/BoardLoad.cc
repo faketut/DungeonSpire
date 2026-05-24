@@ -13,7 +13,6 @@ void Board::initFloor() {
         std::vector<std::shared_ptr<Tile>> floorTiles = getFloorTile();
         if (floorTiles.empty()) return;
 
-        // Generating the player
         size_t firstQuarterEnd = floorTiles.size() / 4;
         auto tile = getRandomTile(floorTiles, 0, firstQuarterEnd);
         if (!tile) return;
@@ -24,7 +23,6 @@ void Board::initFloor() {
         tile->setType(Type::FLOOR);
         floorTiles.erase(std::remove(floorTiles.begin(), floorTiles.end(), tile), floorTiles.end());
 
-        // Generate stairway
         size_t lastQuarterStart = floorTiles.size() * 3 / 4;
         tile = getRandomTile(floorTiles, lastQuarterStart, floorTiles.size());
         pos=tile->getPosition();
@@ -37,7 +35,6 @@ void Board::initFloor() {
         setTile(tile->getPosition(), Type::STAIRWAY);
         floorTiles.erase(std::remove(floorTiles.begin(), floorTiles.end(), tile), floorTiles.end());
 
-        // Generate potions
         for (int i = 0, n = FloorStats::getInstance()->potions(); i < n; ++i) {
             tile = getRandomTile(floorTiles);
             auto pos=tile->getPosition();
@@ -50,7 +47,6 @@ void Board::initFloor() {
             floorTiles.erase(std::remove(floorTiles.begin(), floorTiles.end(), tile), floorTiles.end());
         }
 
-        // Generate gold
         for (int i = 0, n = FloorStats::getInstance()->gold(); i < n; ++i) {
             tile = getRandomTile(floorTiles);
             auto pos=tile->getPosition();
@@ -78,7 +74,6 @@ void Board::initFloor() {
             floorTiles.erase(std::remove(floorTiles.begin(), floorTiles.end(), tile), floorTiles.end());
         }
 
-        // Generate enemies
         bool setCompass = false;
         int generatedCount = 0;
         const int enemyCnt = FloorStats::getInstance()->enemies();
@@ -105,7 +100,6 @@ void Board::initFloor() {
             generatedCount++;
         }
 
-        // generate barrier suit
         if(!getSetSuit()){
             if(floorId==4 || PRNG::randInt(2)){
                 tile = getRandomTile(floorTiles);

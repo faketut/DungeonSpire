@@ -60,7 +60,6 @@ void Game::quit() {
     std::cout << "Goodbye!" << std::endl;
     return;
 }
-// prompt the player to quit or select a race
 void Game::victory() {
     auto player=std::dynamic_pointer_cast<PlayerCharacter>(board->getPc()->getEntity());
     if (!player) { state = GameState::QUIT; return; }
@@ -78,7 +77,6 @@ void Game::victory() {
         state = GameState::QUIT;
     }
 }
-// prompt the player to quit or select a race
 void Game::defeat() {
     std::cout << "Game over! You died." << std::endl;
     std::cout << "Would you like to play again? (y/n)" << std::endl;
@@ -91,7 +89,6 @@ void Game::defeat() {
     }
 }
 bool Game::gameOver() {
-    // 游戏结束的逻辑
     auto player=std::dynamic_pointer_cast<PlayerCharacter>(board->getPc()->getEntity());
     if (!player) return true;
     if (!player->isAlive()) {
@@ -191,8 +188,6 @@ void Game::restart() {
         return;
     }
 
-    // Player is asked to choose a race
-    // Each race can be selected
     std::cout << "Choose your race h[Human]|e[Elf]|o[Orc]|d[Dwarf]: ";
     char c;
     std::cin >> c;
@@ -296,36 +291,24 @@ void Game::run() {
 
 void Game::initializeQuests() {
     auto questManager = QuestManager::getInstance();
-    
-    // Add a kill quest for goblins
     questManager->addQuest(std::make_unique<KillQuest>(
-        Type::GOBLIN, 
-        5, 
+        Type::GOBLIN, 5,
         "Defeat 5 Goblins (Reward: Small Gold Hoard)"
     ));
-    
-    // Add a collect quest for health potions
     questManager->addQuest(std::make_unique<CollectQuest>(
-        Type::RH, 
-        1, 
+        Type::RH, 1,
         "Collect 1 Health Potion (Reward: Restore Health Potion)"
     ));
     questManager->addQuest(std::make_unique<CollectQuest>(
-        Type::PH, 
-        1, 
+        Type::PH, 1,
         "Collect 1 Poison Potion (Reward: Restore Health Potion)"
     ));
-    // Add a kill quest for vampires
     questManager->addQuest(std::make_unique<KillQuest>(
-        Type::VAMPIRE, 
-        1, 
+        Type::VAMPIRE, 1,
         "Defeat 1 Vampire (Reward: Small Gold Hoard)"
     ));
-    
-    // Add a collect quest for barrier suits
     questManager->addQuest(std::make_unique<CollectQuest>(
-        Type::BARRIER_SUIT, 
-        1, 
+        Type::BARRIER_SUIT, 1,
         "Find the Barrier Suit (Reward: Restore Health Potion)"
     ));
 }

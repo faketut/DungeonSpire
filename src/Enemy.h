@@ -143,10 +143,9 @@ public:
 
 class EnemyGenerator {
 public:
-    // WEREWOLF: 2/9 VAMPIRE: 3/18 GOBLIN: 5/18 TROLL: 1/9 PHOENIX: 1/9 MERCHANT: 1/9
+    // Distribution: WEREWOLF 4/18, VAMPIRE 3/18, GOBLIN 5/18, TROLL 2/18, PHOENIX 2/18, MERCHANT 2/18.
     static std::shared_ptr<Enemy> generateEnemy() {
         int i = PRNG::randInt(18);
-        // 设置随机种子
         if (i < 4) {          // 2/9 (4/18): 狼人
             return std::make_shared<Werewolf>();
         } else if (i < 7) {   // 3/18: 吸血鬼

@@ -13,7 +13,6 @@ public:
     virtual bool isTemporary() const = 0; 
 };
 
-// BoostAtk效果（临时）
 class BoostAtkEffect : public Effect {
 public:
     void apply(std::shared_ptr<PlayerCharacter> pc) override {pc->setAtk( ItemStats::getInstance()->getPotionDelta(Type::BA));}
@@ -103,13 +102,12 @@ inline std::unique_ptr<Effect> generateWeather() {
         default: return nullptr;
     }
 }
-// EffectManager（单例）
+
 class EffectManager {
 private:
     std::vector<std::unique_ptr<Effect>> effects;
     std::vector<std::unique_ptr<Effect>> weatherEffects;
 
-    // 私有构造函数，防止外部实例化
     EffectManager() = default;
     std::string getCurrentWeatherDescription(const Effect* effect) const {
         if (dynamic_cast<const RainEffect*>(effect)) {
@@ -122,7 +120,6 @@ private:
         return "";
     }
 
-    // 随机冒险提示
     std::string getRandomAdventureTip() const {
         static const std::vector<std::string> adventureTips = {
             "Listen carefully, you might hear the footsteps of unseen foes approaching.",
@@ -133,14 +130,12 @@ private:
             "Remember, sometimes the greatest danger lies not in what you see, but in what you don't."
         };
 
-        // 使用随机数选择提示
         return adventureTips[PRNG::randInt(static_cast<int>(adventureTips.size()))];
     }
 public:
     EffectManager(const EffectManager&) = delete;
     EffectManager& operator=(const EffectManager&) = delete;
     int getWeatherEffectsCnt() {return weatherEffects.size();}
-    // 提供全局访问点
     static EffectManager* getInstance() {
         static EffectManager inst;
         return &inst;
@@ -165,7 +160,6 @@ public:
             }),
             effects.end());
     }
-    // Add new method to get current weather description
     std::string getCurrentWeatherDescription() const {
         if (weatherEffects.empty()) {
             return "The air is still, and the only sound is your own breath echoing through the empty halls.";
@@ -175,7 +169,6 @@ public:
         for (const auto& effect : weatherEffects) {
             description += getCurrentWeatherDescription(effect.get()) + " ";
         }
-        // Add random adventure tip
         description += "\n" + getRandomAdventureTip();
 
         return description;

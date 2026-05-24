@@ -32,7 +32,6 @@ class RestoreHealthPotion :public Potion{
 public:
     RestoreHealthPotion() : Potion(Type::RH) {}
     void use(std::shared_ptr<PlayerCharacter> pc) override {
-        // 永久效果，直接应用
         auto effect = std::make_unique<RestoreHealthEffect>();
         effect->apply(pc);
     }
@@ -41,7 +40,6 @@ class PoisonHealthPotion :public Potion {
 public:
     PoisonHealthPotion() : Potion(Type::PH) {}
     void use(std::shared_ptr<PlayerCharacter> pc) override {
-        // 永久效果，直接应用
         auto effect = std::make_unique<PoisonHealthEffect>();
         effect->apply(pc);
     }
@@ -83,7 +81,6 @@ public:
     }      
 };
 
-// 宝物基类
 class Gold : public Item {
 protected:
     int gold;
@@ -116,13 +113,12 @@ public:
     MerchantHoard()
         : Gold(ItemStats::getInstance()->getGoldValue(Type::MERCHANT_HOARD), Type::MERCHANT_HOARD, true) {}
 };
-// 重新设计MajorItem为普通物品
+
 class Compass : public Item {
 public:
     Compass() : Item(Type::COMPASS,true) {}
 };
 
-// BarrierSuit（单例 + 受保护）
 class BarrierSuit : public Item {
 public:
     BarrierSuit() : Item(Type::BARRIER_SUIT,true) {}
@@ -130,11 +126,10 @@ public:
 
 class ItemGenerator {
 public:
-    // Distribution constants
     static constexpr int POTION_KINDS = 6;
     static constexpr int GOLD_ROLL_RANGE = 8;
 
-    // 1/6 chance to spawn a particular potion
+    // 1/6 chance per potion type.
     static std::shared_ptr<Potion> generatePotion() {
         int i = PRNG::randInt(POTION_KINDS);
         switch (i) {
@@ -158,7 +153,7 @@ public:
             default: return nullptr;
         }
     }
-    // 5/8 chance of normal, 1/8 dragon hoard, 1/4 small hoard
+    // 5/8 normal pile, 1/8 dragon hoard, 1/4 small hoard.
     static std::shared_ptr<Gold> generateGold() {
         int i = PRNG::randInt(GOLD_ROLL_RANGE);
         switch (i)

@@ -15,22 +15,19 @@ void Board::movePc(Direction dir) {
     
     Position pos = convertDirection(*pt, dir);
     auto tile = getTile(pos);
-    // Safety Check: Ensure tile exists
     if (!tile) {
         return;
     }
-    // if player's speed is 2, move extra one tile
+    // Speed 2 (Rain weather): take an extra step in the same direction.
     if(player->getMovementSpeed()==2) {
         pos=convertDirection(*tile,dir);
         tile=getTile(pos);
     }
-    // Check if player steps on stairs and moves to nextFloor level
     if (dir == Direction::we && isCompassPickedUp() && tile->getType() == Type::STAIRWAY) {
         nextFloor();
         dialog="PC goes up the stairway.";
         return;
     }
-    // Validate movement
     if (isValidMove(*pt, pos)) {
         if(TypeCategories::isPickable(tile->getType())) {
             pickUp(dir);

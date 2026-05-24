@@ -64,20 +64,14 @@ void Board::setTile(const Position& pos,Type t,std::shared_ptr<Entity> entity){
         tiles[y][x]->setType(t);
         tiles[y][x]->setPosition(pos);
     }
-    // Notify observers if necessary
 }
 std::shared_ptr<Tile> Board::getRandomTile(const std::vector<std::shared_ptr<Tile>>& tiles, size_t start, size_t end) {
-    // 如果未指定范围，默认使用整个 vector
     if (end == 0 || end > tiles.size()) {
         end = tiles.size();
     }
-
-    // 检查范围是否有效
     if (start >= end || tiles.empty()) {
-        return nullptr; // 范围无效或 tiles 为空，返回 nullptr
+        return nullptr;
     }
-
-    // 在指定范围内随机选择一个索引
     size_t index = start + PRNG::randInt(static_cast<int>(end - start));
     return tiles[index];
 }
