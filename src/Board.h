@@ -100,7 +100,6 @@ public:
     std::shared_ptr<Tile> getTile(const Position& pos) const;
     std::vector<std::shared_ptr<Tile>> getFloorTile() const;
     std::shared_ptr<Tile> getRandomTile(const std::vector<std::shared_ptr<Tile>>& tiles,size_t start = 0, size_t end = 0);
-    std::vector<std::shared_ptr<Tile>> getNeighbourEnemyTilesExceptDragonAndMerchant(const Position& pos) const;
     std::vector<std::shared_ptr<Tile>> getAllEnemyTileExceptDragonAndMerchant() const;
 
     std::string seeDiaHelp(Direction dir);
